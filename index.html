@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小雨课程表</title>
+    <link rel="stylesheet" href="./libraries/weui/weui.min.css">
+    <link rel="stylesheet" href="./libraries/remixicon/remixicon.css">
+    <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 子页面容器 -->
+        <div id="page-container"></div>
+        <!-- 底部导航栏 -->
+        <div id="tabbar" class="weui-tabbar">
+            <a href="javascript:;" class="weui-tabbar__item weui-bar__item_on" data-page="schedule">
+                <div class="weui-tabbar__icon">
+                    <i class="ri-calendar-line"></i>
+                </div>
+                <p class="weui-tabbar__label">课程</p>
+            </a>
+            <a href="javascript:;" class="weui-tabbar__item" data-page="mine">
+                <div class="weui-tabbar__icon">
+                    <i class="ri-user-line"></i>
+                </div>
+                <p class="weui-tabbar__label">我的</p>
+            </a>
+            <a href="javascript:;" class="weui-tabbar__item" data-page="settings">
+                <div class="weui-tabbar__icon">
+                    <i class="ri-settings-line"></i>
+                </div>
+                <p class="weui-tabbar__label">设置</p>
+            </a>
+        </div>
+    </div>
+    <script src="./index.js"></script>
+</body>
+</html>
