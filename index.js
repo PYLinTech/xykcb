@@ -1,8 +1,8 @@
 // 页面加载器映射
 const pageLoaders = {
-    schedule: () => import('./assets/subpages/schedule/schedule.js').then(m => m.load),
-    mine: () => import('./assets/subpages/mine/mine.js').then(m => m.load),
-    settings: () => import('./assets/subpages/settings/settings.js').then(m => m.load)
+    schedule: () => import('/assets/subpages/schedule/schedule.js').then(m => m.load),
+    mine: () => import('/assets/subpages/mine/mine.js').then(m => m.load),
+    settings: () => import('/assets/subpages/settings/settings.js').then(m => m.load)
 };
 
 // 已加载页面的 loader 缓存
