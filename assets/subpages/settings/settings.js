@@ -1,97 +1,78 @@
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
+import { loadFont } from '/assets/init/fonts.js';
 
-// 默认配置
-const defaultSettings = {
-  language: 'zh-cn',
-  theme: 'system',
-  font: 'DingTalk-JinBuTi'
-};
-
-// 映射配置
-const configMap = {
+// 配置
+const settingsConfig = {
   language: {
-    'zh-cn': '简体中文',
-    en: 'English'
+    default: 'zh-cn',
+    title: '选择语言',
+    options: [
+      { value: 'zh-cn', label: '简体中文' },
+      { value: 'en', label: 'English' }
+    ]
   },
   theme: {
-    system: '跟随系统',
-    light: '浅色模式',
-    dark: '深色模式'
+    default: 'system',
+    title: '选择主题',
+    options: [
+      { value: 'system', label: '跟随系统' },
+      { value: 'light', label: '浅色模式' },
+      { value: 'dark', label: '深色模式' }
+    ]
   },
   font: {
-    'DingTalk-JinBuTi': '钉钉进步体'
+    default: 'DingTalk-JinBuTi',
+    title: '选择字体',
+    options: [
+      { value: 'system', label: '系统' },
+      { value: 'DingTalk-JinBuTi', label: '钉钉进步体' },
+      { value: 'MiSansVF', label: 'MiSans' },
+      { value: 'LXGWWenKaiScreen', label: '霞鹜文楷' }
+    ]
   }
 };
 
-// 获取设置
-function getSetting(key) {
-  return localStorage.getItem(`setting_${key}`) || defaultSettings[key];
-}
+// 标签映射
+const labelMap = {
+  language: { 'zh-cn': '简体中文', en: 'English' },
+  theme: { system: '跟随系统', light: '浅色模式', dark: '深色模式' },
+  font: { system: '系统', 'DingTalk-JinBuTi': '钉钉进步体', MiSansVF: 'MiSans', 'LXGWWenKaiScreen': '霞鹜文楷' }
+};
 
-// 保存设置
-function saveSetting(key, value) {
-  localStorage.setItem(`setting_${key}`, value);
-}
+// 获取/保存设置
+const getSetting = key => localStorage.getItem(`setting_${key}`) || settingsConfig[key].default;
+const saveSetting = (key, value) => localStorage.setItem(`setting_${key}`, value);
+
+// ID 映射
+const idMap = { language: 'lang', theme: 'theme', font: 'font' };
 
 // 设置页
 export async function load(container) {
   const response = await fetch('/assets/subpages/settings/settings.html');
-  const html = await response.text();
-  container.innerHTML = html;
+  container.innerHTML = await response.text();
 
   // 初始化显示
-  container.querySelector('#js_cell_lang_ft').textContent = configMap.language[getSetting('language')];
-  container.querySelector('#js_cell_theme_ft').textContent = configMap.theme[getSetting('theme')];
-  container.querySelector('#js_cell_font_ft').textContent = configMap.font[getSetting('font')];
+  Object.keys(settingsConfig).forEach(key => {
+    const id = idMap[key];
+    container.querySelector(`#js_cell_${id}_ft`).textContent = labelMap[key][getSetting(key)];
+  });
 
-  // 语言选项
-  container.querySelector('#js_cell_lang_hd, #js_cell_lang_bd, #js_cell_lang_ft').closest('.weui-cell')
-    .addEventListener('click', () => {
-      HalfRadioDialog.show({
-        title: '选择语言',
-        options: [
-          { value: 'zh-cn', label: '简体中文' },
-          { value: 'en', label: 'English' }
-        ],
-        selected: getSetting('language'),
-        onChange: (value) => {
-          saveSetting('language', value);
-          container.querySelector('#js_cell_lang_ft').textContent = configMap.language[value];
-        }
+  // 绑定点击事件
+  Object.keys(settingsConfig).forEach(key => {
+    const id = idMap[key];
+    container.querySelector(`#js_cell_${id}_hd, #js_cell_${id}_bd, #js_cell_${id}_ft`).closest('.weui-cell')
+      .addEventListener('click', () => {
+        const config = settingsConfig[key];
+        HalfRadioDialog.show({
+          title: config.title,
+          options: config.options,
+          selected: getSetting(key),
+          onChange: (value) => {
+            saveSetting(key, value);
+            container.querySelector(`#js_cell_${id}_ft`).textContent = labelMap[key][value];
+            if (key === 'font') loadFont(value);
+          }
+        });
       });
-    });
-
-  // 主题选项
-  container.querySelector('#js_cell_theme_hd, #js_cell_theme_bd, #js_cell_theme_ft').closest('.weui-cell')
-    .addEventListener('click', () => {
-      HalfRadioDialog.show({
-        title: '选择主题',
-        options: [
-          { value: 'system', label: '跟随系统' },
-          { value: 'light', label: '浅色模式' },
-          { value: 'dark', label: '深色模式' }
-        ],
-        selected: getSetting('theme'),
-        onChange: (value) => {
-          saveSetting('theme', value);
-          container.querySelector('#js_cell_theme_ft').textContent = configMap.theme[value];
-        }
-      });
-    });
-
-  // 字体选项
-  container.querySelector('#js_cell_font_hd, #js_cell_font_bd, #js_cell_font_ft').closest('.weui-cell')
-    .addEventListener('click', () => {
-      HalfRadioDialog.show({
-        title: '选择字体',
-        options: [
-          { value: 'DingTalk-JinBuTi', label: '钉钉进步体' }
-        ],
-        selected: getSetting('font'),
-        onChange: (value) => {
-          saveSetting('font', value);
-          container.querySelector('#js_cell_font_ft').textContent = configMap.font[value];
-        }
-      });
-    });
+  });
 }

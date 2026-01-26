@@ -1,2 +1,2 @@
-import { loadFont } from '/assets/init/fonts.js';
-loadFont();
+import { initFont } from '/assets/init/fonts.js';
+initFont();
