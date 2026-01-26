@@ -4,7 +4,7 @@ const HalfRadioDialog = {
     document.getElementById('halfRadioDialogWrap')?.remove();
 
     const items = options.map(opt =>
-      `<label class="weui-cell weui-cell_active weui-check__label">
+      `<label class="weui-cell weui-cell_active weui-check__label" style="background-color: var(--weui-BG-1)">
         <div class="weui-cell__bd"><p>${opt.label}</p></div>
         <div class="weui-cell__ft">
           <input type="radio" class="weui-check" name="half_radio" value="${opt.value}"${opt.value === selected ? ' checked' : ''}>
@@ -17,7 +17,7 @@ const HalfRadioDialog = {
     wrap.id = 'halfRadioDialogWrap';
     wrap.innerHTML = `
       <div class="weui-mask"></div>
-      <div class="weui-half-screen-dialog">
+      <div class="weui-half-screen-dialog" style="background-color: var(--weui-BG-1)">
         <div class="weui-half-screen-dialog__hd">
           <div class="weui-half-screen-dialog__hd__main">
             <strong class="weui-half-screen-dialog__title">${title}</strong>
