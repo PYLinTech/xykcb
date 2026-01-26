@@ -1,5 +1,6 @@
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { loadFont } from '/assets/init/fonts.js';
+import { applyTheme } from '/assets/init/themes.js';
 
 // 配置
 const settingsConfig = {
@@ -71,6 +72,7 @@ export async function load(container) {
             saveSetting(key, value);
             container.querySelector(`#js_cell_${id}_ft`).textContent = labelMap[key][value];
             if (key === 'font') loadFont(value);
+            if (key === 'theme') applyTheme(value);
           }
         });
       });
