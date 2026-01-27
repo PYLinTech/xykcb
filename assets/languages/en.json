@@ -1,0 +1,32 @@
+{
+  "index": {
+    "title": "Xiaoyu Schedule",
+    "schedule": "Schedule",
+    "mine": "Mine",
+    "settings": "Settings"
+  },
+  "schedule": {
+    "title": "Schedule"
+  },
+  "mine": {
+    "title": "Mine"
+  },
+  "settings": {
+    "appearance": "Interface & Style",
+    "language": "Language",
+    "theme": "Theme",
+    "font": "Font",
+    "selectLanguage": "Select Language",
+    "selectTheme": "Select Theme",
+    "selectFont": "Select Font",
+    "langZhCn": "简体中文",
+    "langEn": "English",
+    "themeSystem": "Follow System",
+    "themeLight": "Light Mode",
+    "themeDark": "Dark Mode",
+    "fontSystem": "System",
+    "fontDingTalk": "DingTalk JinBuTi",
+    "fontMiSans": "MiSans",
+    "fontLXGW": "LXGW WenKai"
+  }
+}
