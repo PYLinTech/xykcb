@@ -16,7 +16,6 @@ Contact: PYLinTech@163.com
 |---|---|---|
 | **WeUI** | 微信原生设计规范组件库 | [https://github.com/Tencent/weui](https://github.com/Tencent/weui) |
 | **RemixIcon** | 开源图标库 | [https://github.com/Remix-Design/RemixIcon](https://github.com/Remix-Design/RemixIcon) |
-| **i18next** | 国际化框架 | [https://github.com/i18next/i18next](https://github.com/i18next/i18next) |
 
 ## 项目结构
 
@@ -41,7 +40,6 @@ xykcb/
 │       └── welcome/                # 欢迎页面（待开发）
 └── libraries/
     ├── fonts/          # 字体文件（.ttf）
-    ├── i18next/        # i18n 依赖
     ├── remixicon/      # 图标字体
     └── weui/           # WeUI CSS 组件库
 ```
