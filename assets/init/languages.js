@@ -14,7 +14,7 @@ export async function initLanguage(lang) {
 }
 
 // 内部方法：翻译元素集合
-function translateElements(section, elements) {
+async function translateElements(section, elements) {
   elements.forEach(el => {
     const key = el.getAttribute('data-i18n');
     const text = getI18n(section, key);
@@ -29,13 +29,13 @@ async function translateIndex() {
   }
   const title = getI18n('index', 'title');
   if (title) document.title = title;
-  translateElements('index', document.querySelectorAll('[data-i18n]'));
+  await translateElements('index', document.querySelectorAll('[data-i18n]'));
 }
 
 // 翻译页面
-export function translatePage(value, container) {
+export async function translatePage(value, container) {
   if (!langData || !langData[value]) return;
-  translateElements(value, container.querySelectorAll('[data-i18n]'));
+  await translateElements(value, container.querySelectorAll('[data-i18n]'));
 }
 
 // 获取翻译文本
@@ -44,7 +44,7 @@ export function getI18n(value, key) {
 }
 
 // 语言切换回调
-export function onLanguageChange(value) {
-  initLanguage(value);
+export async function onLanguageChange(value) {
+  await initLanguage(value);
   import('/index.js').then(m => m.refreshSubpage?.());
 }

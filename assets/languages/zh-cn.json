@@ -9,7 +9,13 @@
     "title": "课程"
   },
   "mine": {
-    "title": "我的"
+    "title": "我的",
+    "account": "账号",
+    "notLoggedIn": "未登录",
+    "loginPrompt": "请先登录以访问教务系统",
+    "goLogin": "去登录",
+    "functions": "功能",
+    "function": "功能"
   },
   "settings": {
     "appearance": "界面与样式",

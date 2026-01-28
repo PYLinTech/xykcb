@@ -67,7 +67,7 @@ export async function load(container) {
   const config = getConfig();
   const response = await fetch('/assets/subpages/settings/settings.html');
   container.innerHTML = await response.text();
-  translatePage('settings', container);
+  await translatePage('settings', container);
 
   Object.keys(config).forEach(key => {
     const id = idMap[key];
@@ -83,12 +83,12 @@ export async function load(container) {
           title: freshConfig[key].title,
           options: freshConfig[key].options,
           selected: getSetting(key),
-          onChange: (value) => {
+          onChange: async (value) => {
             saveSetting(key, value);
             container.querySelector(`#js_cell_${id}_ft`).textContent = getLabel(key, value);
-            if (key === 'language') onLanguageChange(value);
-            if (key === 'font') loadFont(value);
-            if (key === 'theme') applyTheme(value);
+            if (key === 'language') await onLanguageChange(value);
+            if (key === 'font') await loadFont(value);
+            if (key === 'theme') await applyTheme(value);
           }
         });
       });

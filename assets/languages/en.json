@@ -9,7 +9,13 @@
     "title": "Schedule"
   },
   "mine": {
-    "title": "Mine"
+    "title": "Mine",
+    "account": "Account",
+    "notLoggedIn": "Not Logged In",
+    "loginPrompt": "Please log in to access the academic system",
+    "goLogin": "Go Login",
+    "functions": "Functions",
+    "function": "Function"
   },
   "settings": {
     "appearance": "Interface & Style",

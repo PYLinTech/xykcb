@@ -6,7 +6,7 @@ const themeConfig = {
 };
 
 // 应用主题
-export function applyTheme(theme) {
+export async function applyTheme(theme) {
   const body = document.body;
   if (theme === 'system') {
     body.removeAttribute('data-weui-theme');
@@ -16,7 +16,7 @@ export function applyTheme(theme) {
 }
 
 // 初始化主题
-export function initTheme() {
+export async function initTheme() {
   const theme = localStorage.getItem('setting_theme') || themeConfig.system;
-  applyTheme(theme);
+  await applyTheme(theme);
 }
