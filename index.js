@@ -32,6 +32,17 @@ async function switchPage(pageName) {
   await render(pageName);
 }
 
+export async function showOverlay(html) {
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = html;
+  overlay.classList.add('show');
+}
+
+export function hideOverlay() {
+  const overlay = document.getElementById('overlay');
+  overlay.classList.remove('show');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   switchPage('schedule');
   tabbar.addEventListener('click', (e) => {

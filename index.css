@@ -12,6 +12,22 @@ body {
 #page-container {
     flex: 1;
     width: 100%;
-    overflow: hidden;
+    overflow: auto;
     background-color: var(--weui-BG-0);
+}
+
+.overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    overflow: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.overlay.show {
+    opacity: 1;
+    visibility: visible;
 }
