@@ -49,12 +49,16 @@ const HalfRadioDialog = {
     };
 
     mask.addEventListener('click', close);
+
     wrap.addEventListener('click', e => {
-      const radio = e.target.closest('.weui-check');
-      if (radio) {
-        radio.checked = true;
-        onChange?.(radio.value);
-        close();
+      const label = e.target.closest('.weui-check__label');
+      if (label) {
+        const radio = label.querySelector('.weui-check');
+        if (radio) {
+          radio.checked = true;
+          onChange?.(radio.value);
+          close();
+        }
       }
     });
   }
