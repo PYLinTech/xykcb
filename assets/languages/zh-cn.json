@@ -8,6 +8,16 @@
   "schedule": {
     "title": "课程"
   },
+  "login": {
+    "title": "登录教务系统",
+    "desc": "请输入教务系统的账号及密码进行登录，账号及密码仅会本地保存",
+    "labelUsername": "账号",
+    "labelPassword": "密码",
+    "placeholderUsername": "请输入教务账号",
+    "placeholderPassword": "请输入密码",
+    "btnLogin": "登录",
+    "btnBack": "返回"
+  },
   "mine": {
     "title": "我的",
     "account": "账号",

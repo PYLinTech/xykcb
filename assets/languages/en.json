@@ -8,6 +8,16 @@
   "schedule": {
     "title": "Schedule"
   },
+  "login": {
+    "title": "Login to Academic System",
+    "desc": "Please enter your academic system account and password to log in. Your credentials will only be saved locally.",
+    "labelUsername": "Account",
+    "labelPassword": "Password",
+    "placeholderUsername": "Enter academic account",
+    "placeholderPassword": "Enter password",
+    "btnLogin": "Login",
+    "btnBack": "Back"
+  },
   "mine": {
     "title": "Mine",
     "account": "Account",

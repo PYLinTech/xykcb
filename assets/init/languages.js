@@ -18,7 +18,13 @@ async function translateElements(section, elements) {
   elements.forEach(el => {
     const key = el.getAttribute('data-i18n');
     const text = getI18n(section, key);
-    if (text) el.textContent = text;
+    if (text) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.placeholder = text;
+      } else {
+        el.textContent = text;
+      }
+    }
   });
 }
 

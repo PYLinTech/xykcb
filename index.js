@@ -32,9 +32,13 @@ async function switchPage(pageName) {
   await render(pageName);
 }
 
-export async function showOverlay(html) {
+export async function showOverlay(pageName, html) {
   const overlay = document.getElementById('overlay');
   overlay.innerHTML = html;
+  if (pageName) {
+    const { translatePage } = await import('/assets/init/languages.js');
+    await translatePage(pageName, overlay);
+  }
   overlay.classList.add('show');
 }
 
