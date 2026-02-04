@@ -6,7 +6,31 @@
     "settings": "设置"
   },
   "schedule": {
-    "title": "课程"
+    "currentSemester": "当前学期",
+    "selectSemester": "选择学期",
+    "selectView": "选择视图",
+    "selectWeek": "选择周次",
+    "weekView": "周视图",
+    "semesterView": "学期视图",
+    "dayView": "日视图",
+    "allWeek": "全部周次",
+    "weekN": "第{n}周",
+    "noSemester": "暂无学期数据",
+    "noSemesterConfig": "获取学期配置失败",
+    "loadCourseError": "加载课程数据失败",
+    "section": "节次",
+    "currentWeekSuffix": "（当周）",
+    "weekdayMon": "周一",
+    "weekdayTue": "周二",
+    "weekdayWed": "周三",
+    "weekdayThu": "周四",
+    "weekdayFri": "周五",
+    "weekdaySat": "周六",
+    "weekdaySun": "周日",
+    "location": "地点：",
+    "teacher": "教师：",
+    "week": "周次：",
+    "close": "关闭"
   },
   "login": {
     "title": "登录教务系统",
@@ -19,7 +43,6 @@
     "btnBack": "返回"
   },
   "mine": {
-    "title": "我的",
     "account": "账号",
     "notLoggedIn": "未登录",
     "loginPrompt": "请先登录以访问教务系统",
@@ -32,6 +55,10 @@
     "language": "语言",
     "theme": "主题",
     "font": "字体",
+    "weekViewStyle": "周视图样式",
+    "showWeekend": "显示周末",
+    "showTeacher": "显示教师",
+    "showBorder": "显示表格框线",
     "selectLanguage": "选择语言",
     "selectTheme": "选择主题",
     "selectFont": "选择字体",

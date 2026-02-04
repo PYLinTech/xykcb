@@ -1,1 +1,55 @@
-<div data-i18n="title"></div>
+<style>
+/* 课程背景颜色 - 浅色模式（偏向白色） */
+.course-bg-0 { background-color: #c8e6c9; }
+.course-bg-1 { background-color: #bbdefb; }
+.course-bg-2 { background-color: #ffe0b2; }
+.course-bg-3 { background-color: #f8bbd9; }
+.course-bg-4 { background-color: #e1bee7; }
+.course-bg-5 { background-color: #b2dfdb; }
+.course-bg-6 { background-color: #fff9c4; }
+.course-bg-7 { background-color: #d1c4e9; }
+.course-bg-8 { background-color: #c5cae9; }
+.course-bg-9 { background-color: #ffcdd2; }
+
+/* 课程背景颜色 - 深色模式（偏向黑色） */
+[data-weui-theme="dark"] .course-bg-0 { background-color: #4a7c45; }
+[data-weui-theme="dark"] .course-bg-1 { background-color: #3d6a99; }
+[data-weui-theme="dark"] .course-bg-2 { background-color: #997a45; }
+[data-weui-theme="dark"] .course-bg-3 { background-color: #994d6a; }
+[data-weui-theme="dark"] .course-bg-4 { background-color: #7a4a99; }
+[data-weui-theme="dark"] .course-bg-5 { background-color: #458c85; }
+[data-weui-theme="dark"] .course-bg-6 { background-color: #999045; }
+[data-weui-theme="dark"] .course-bg-7 { background-color: #5f4a99; }
+[data-weui-theme="dark"] .course-bg-8 { background-color: #4a5c99; }
+[data-weui-theme="dark"] .course-bg-9 { background-color: #994a4a; }
+
+/* 系统暗色模式自动切换（与weui.min.css一致） */
+@media (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .course-bg-0 { background-color: #4a7c45; }
+    body:not([data-weui-theme="light"]) .course-bg-1 { background-color: #3d6a99; }
+    body:not([data-weui-theme="light"]) .course-bg-2 { background-color: #997a45; }
+    body:not([data-weui-theme="light"]) .course-bg-3 { background-color: #994d6a; }
+    body:not([data-weui-theme="light"]) .course-bg-4 { background-color: #7a4a99; }
+    body:not([data-weui-theme="light"]) .course-bg-5 { background-color: #458c85; }
+    body:not([data-weui-theme="light"]) .course-bg-6 { background-color: #999045; }
+    body:not([data-weui-theme="light"]) .course-bg-7 { background-color: #5f4a99; }
+    body:not([data-weui-theme="light"]) .course-bg-8 { background-color: #4a5c99; }
+    body:not([data-weui-theme="light"]) .course-bg-9 { background-color: #994a4a; }
+}
+</style>
+
+<div style="display: flex; flex-direction: column; min-height: 100%;">
+    <div style="background-color: var(--weui-BG-1); height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: sticky; top: 0; z-index: 1; flex-shrink: 0;">
+        <a id="js_current_semester" class="weui-btn weui-btn_default" style="min-width: 0; max-width: none; margin: 0; padding: 3px 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; overflow: hidden;">
+            <span data-i18n="currentSemester" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">当前学期</span> <i class="ri-arrow-down-s-line" style="font-size: 12px;"></i>
+        </a>
+        <a id="js_content_view" class="weui-btn weui-btn_default" style="min-width: 0; max-width: none; margin: 0; padding: 3px 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; overflow: hidden;">
+            <span id="js_content_view_label" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">课程视图</span> <i class="ri-arrow-down-s-line" style="font-size: 12px;"></i>
+        </a>
+        <a id="js_current_week" class="weui-btn weui-btn_default" style="visibility: hidden; min-width: 0; max-width: none; margin: 0; padding: 3px 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; overflow: hidden;">
+            <span id="js_current_week_label" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">第N周</span> <i class="ri-arrow-down-s-line" style="font-size: 12px;"></i>
+        </a>
+        <i id="js_refresh" class="ri-refresh-line" style="background-color: var(--weui-FG-5); color: var(--weui-FG-0); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; margin-left: auto; font-size: 18px; cursor: pointer;"></i>
+    </div>
+    <div id="js_schedule_content" style="flex: 1;"></div>
+</div>

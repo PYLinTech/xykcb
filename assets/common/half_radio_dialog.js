@@ -7,7 +7,7 @@ const HalfRadioDialog = {
       `<label class="weui-cell weui-cell_active weui-check__label" style="background-color: var(--weui-BG-1)">
         <div class="weui-cell__bd"><p>${opt.label}</p></div>
         <div class="weui-cell__ft">
-          <input type="radio" class="weui-check" name="half_radio" value="${opt.value}"${opt.value === selected ? ' checked' : ''}>
+          <input type="radio" class="weui-check" name="half_radio" value="${opt.value}"${opt.value == selected ? ' checked' : ''}>
           <span class="weui-icon-checked"></span>
         </div>
       </label>`

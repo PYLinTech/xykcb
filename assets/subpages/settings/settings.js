@@ -6,7 +6,10 @@ import { applyTheme } from '/assets/init/themes.js';
 const defaults = {
   language: 'zh-cn',
   theme: 'system',
-  font: 'DingTalk-JinBuTi'
+  font: 'DingTalk-JinBuTi',
+  showWeekend: 'true',
+  showTeacher: 'true',
+  showBorder: 'true'
 };
 
 const i18nKeys = {
@@ -20,6 +23,8 @@ const optionValues = {
   theme: ['system', 'light', 'dark'],
   font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen']
 };
+
+const switchConfig = ['showWeekend', 'showTeacher', 'showBorder'];
 
 function getConfig() {
   return {
@@ -92,5 +97,16 @@ export async function load(container) {
           }
         });
       });
+  });
+
+  // 初始化开关状态
+  switchConfig.forEach(key => {
+    const switchEl = container.querySelector(`#js_switch_${key.replace('show', '').toLowerCase()}`);
+    if (switchEl) {
+      switchEl.checked = getSetting(key) === 'true';
+      switchEl.addEventListener('change', () => {
+        saveSetting(key, switchEl.checked.toString());
+      });
+    }
   });
 }
