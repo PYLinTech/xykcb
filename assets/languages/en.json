@@ -1,4 +1,17 @@
 {
+  "common": {
+    "yearMonth": "{month}/{year}",
+    "weekday1": "Mon",
+    "weekday2": "Tue",
+    "weekday3": "Wed",
+    "weekday4": "Thu",
+    "weekday5": "Fri",
+    "weekday6": "Sat",
+    "weekday7": "Sun",
+    "selectDate": "Select Date",
+    "today": "Today",
+    "cancel": "Cancel"
+  },
   "index": {
     "title": "Xiaoyu Schedule",
     "schedule": "Schedule",
@@ -30,6 +43,8 @@
     "location": "Location: ",
     "teacher": "Teacher: ",
     "week": "Week: ",
+    "noCourse": "No courses today",
+    "outOfSemester": "Date is outside the semester range",
     "close": "Close"
   },
   "login": {

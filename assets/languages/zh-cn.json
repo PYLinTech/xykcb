@@ -1,4 +1,17 @@
 {
+  "common": {
+    "yearMonth": "{year}年{month}月",
+    "weekday1": "一",
+    "weekday2": "二",
+    "weekday3": "三",
+    "weekday4": "四",
+    "weekday5": "五",
+    "weekday6": "六",
+    "weekday7": "日",
+    "selectDate": "选择日期",
+    "today": "今天",
+    "cancel": "取消"
+  },
   "index": {
     "title": "小雨课程表",
     "schedule": "课程",
@@ -30,6 +43,8 @@
     "location": "地点：",
     "teacher": "教师：",
     "week": "周次：",
+    "noCourse": "当天无课程",
+    "outOfSemester": "日期不在学期范围内",
     "close": "关闭"
   },
   "login": {

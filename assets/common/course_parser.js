@@ -131,15 +131,38 @@ function getCoursesByWeek(semesterId, week) {
 }
 
 /**
- * 获取指定周次和星期的课程数据
+ * 根据日期获取课程数据
  * @param {string} semesterId - 学期ID
- * @param {number} week - 周次
- * @param {number} day - 星期(1-7)
- * @returns {Object[]} - 该天有课的课程数组
+ * @param {string} dateStr - 日期字符串，格式: "2025-09-01"
+ * @returns {Object[]|"out"|"none"|null} - 课程数组，"out"表示日期不在学期范围，"none"表示无课程，null表示错误
  */
-function getCoursesByDay(semesterId, week, day) {
+function getCoursesByDate(semesterId, dateStr) {
+    const semester = courseData?.[semesterId];
+    if (!semester?.semesterStart) return null;
+
+    const targetDate = new Date(dateStr);
+    if (isNaN(targetDate.getTime())) return null;
+
+    const startDate = new Date(semester.semesterStart);
+    const startDay = startDate.getDay();
+    const firstWeekMonday = new Date(startDate.getTime() - (startDay === 0 ? 6 : startDay - 1) * 24 * 60 * 60 * 1000);
+
+    const diffTime = targetDate.getTime() - firstWeekMonday.getTime();
+    const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+    const week = Math.floor(diffDays / 7) + 1;
+
+    // 日期不在学期范围内
+    if (week < 1 || week > semester.totalWeeks) return 'out';
+
+    // 星期几 (1-7, 1=周一)
+    const day = targetDate.getDay();
+    const dayOfWeek = day === 0 ? 7 : day;
+
+    // 获取该周次的课程
     const courses = getCoursesByWeek(semesterId, week);
-    return courses.filter(course => course.schedule && course.schedule[day]);
+    const dayCourses = courses.filter(course => course.schedule && course.schedule[dayOfWeek]);
+
+    return dayCourses.length > 0 ? dayCourses : 'none';
 }
 
 /**
@@ -153,11 +176,8 @@ function getWeekDates(semesterId, week) {
     if (!semester?.semesterStart || week < 1 || week > semester.totalWeeks) return null;
 
     const startDate = new Date(semester.semesterStart);
-    // 星期几(0=周日, 1=周一, ..., 6=周六)
     const startDay = startDate.getDay();
-    // 计算第1周星期一的日期
     const firstWeekMonday = new Date(startDate.getTime() - (startDay === 0 ? 6 : startDay - 1) * 24 * 60 * 60 * 1000);
-    // 计算目标周星期一的日期
     const weekStart = new Date(firstWeekMonday.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
     const dates = {};
 
@@ -172,33 +192,6 @@ function getWeekDates(semesterId, week) {
 }
 
 /**
- * 根据日期获取周次
- * @param {string} semesterId - 学期ID
- * @param {string} dateStr - 日期字符串，格式: "2025-10-01"
- * @returns {number|null} - 周次，日期超出学期范围返回null
- */
-function getWeekByDate(semesterId, dateStr) {
-    const semester = courseData?.[semesterId];
-    if (!semester?.semesterStart) return null;
-
-    const targetDate = new Date(dateStr);
-    if (isNaN(targetDate.getTime())) return null;
-
-    const startDate = new Date(semester.semesterStart);
-    // 星期几(0=周日, 1=周一, ..., 6=周六)
-    const startDay = startDate.getDay();
-    // 计算第1周星期一的日期
-    const firstWeekMonday = new Date(startDate.getTime() - (startDay === 0 ? 6 : startDay - 1) * 24 * 60 * 60 * 1000);
-
-    const diffTime = targetDate.getTime() - firstWeekMonday.getTime();
-    const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
-    const week = Math.floor(diffDays / 7) + 1;
-
-    if (week < 1 || week > semester.totalWeeks) return null;
-    return week;
-}
-
-/**
  * 获取当前日期所属的学期和周次
  * @returns {Object|null} - { semesterId, week }，找不到返回null
  */
@@ -206,39 +199,41 @@ function getCurrentSemesterAndWeek() {
     const semesters = getAvailableSemesters();
     if (semesters.length === 0) return null;
 
-    // 获取当前日期
     const today = new Date();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     const todayStr = `${today.getFullYear()}-${month}-${day}`;
+    const targetDate = new Date(todayStr);
 
-    // 轮询每个学期，收集 week 不为空的匹配结果
-    const matchedSemesters = [];
-    for (const semesterId of semesters) {
-        const week = getWeekByDate(semesterId, todayStr);
-        if (week !== null) {
-            matchedSemesters.push({ semesterId, week });
+    // 计算每个学期的周次
+    const results = semesters.map(semesterId => {
+        const semester = courseData?.[semesterId];
+        if (!semester?.semesterStart) return { semesterId, week: 0, startTime: 0 };
+
+        const startDate = new Date(semester.semesterStart);
+        const startDay = startDate.getDay();
+        const firstWeekMonday = new Date(startDate.getTime() - (startDay === 0 ? 6 : startDay - 1) * 24 * 60 * 60 * 1000);
+
+        const diffTime = targetDate.getTime() - firstWeekMonday.getTime();
+        const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+        const week = Math.floor(diffDays / 7) + 1;
+
+        if (week >= 1 && week <= semester.totalWeeks) {
+            return { semesterId, week, startTime: startDate.getTime() };
         }
-    }
-
-    // 如果有匹配结果，返回开始日期最晚的学期和其周次
-    if (matchedSemesters.length > 0) {
-        matchedSemesters.sort((a, b) => {
-            const dateA = new Date(courseData[a.semesterId]?.semesterStart || 0);
-            const dateB = new Date(courseData[b.semesterId]?.semesterStart || 0);
-            return dateB.getTime() - dateA.getTime();
-        });
-        return matchedSemesters[0];
-    }
-
-    // 如果没有匹配结果，返回开始日期最晚的学期和 week:0
-    const sortedSemesters = [...semesters].sort((a, b) => {
-        const dateA = new Date(courseData[a]?.semesterStart || 0);
-        const dateB = new Date(courseData[b]?.semesterStart || 0);
-        return dateB.getTime() - dateA.getTime();
+        return { semesterId, week: 0, startTime: startDate.getTime() };
     });
 
-    return { semesterId: sortedSemesters[0], week: 0 };
+    // 优先筛选匹配周次的，按开始日期降序
+    const matched = results.filter(r => r.week > 0);
+    if (matched.length > 0) {
+        matched.sort((a, b) => b.startTime - a.startTime);
+        return { semesterId: matched[0].semesterId, week: matched[0].week };
+    }
+
+    // 无匹配周次，返回开始日期最晚的
+    const sorted = [...results].sort((a, b) => b.startTime - a.startTime);
+    return { semesterId: sorted[0].semesterId, week: 0 };
 }
 
 /**
@@ -282,8 +277,7 @@ function formatWeeks(weeks) {
         }
         prev = current;
     }
-    // 在逗号后添加零宽空格，实现友好换行
     return result.join(',\u200B');
 }
 
-export { loadCourse, getAvailableSemesters, getSemesterConfig, getCourses, getCoursesByWeek, getCoursesByDay, getWeekDates, getWeekByDate, getCurrentSemesterAndWeek, searchCourses, formatWeeks };
+export { loadCourse, getAvailableSemesters, getSemesterConfig, getCourses, getCoursesByWeek, getCoursesByDate, getWeekDates, getCurrentSemesterAndWeek, searchCourses, formatWeeks };
