@@ -39,11 +39,13 @@ export async function showOverlay(pageName, html) {
     const { translatePage } = await import('/assets/init/languages.js');
     await translatePage(pageName, overlay);
   }
+  overlay.style.transition = 'opacity 0.12s ease-in, visibility 0.12s ease-in';
   overlay.classList.add('show');
 }
 
 export function hideOverlay() {
   const overlay = document.getElementById('overlay');
+  overlay.style.transition = 'opacity 0.12s ease-out, visibility 0.12s ease-out';
   overlay.classList.remove('show');
 }
 
