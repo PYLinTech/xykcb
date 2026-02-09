@@ -104,7 +104,7 @@ function renderDayView(container) {
 
     // 左箭头
     const leftBtn = document.createElement('div');
-    leftBtn.innerHTML = '<i class="ri-arrow-left-s-line" style="font-size: 24px;"></i>';
+    leftBtn.innerHTML = '<i class="ri-arrow-left-s-line" style="font-size: 22px;"></i>';
     leftBtn.classList.add('tap-active');
     leftBtn.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; color: var(--weui-FG-0); border-radius: 50%;';
     leftBtn.addEventListener('click', () => {
@@ -118,7 +118,7 @@ function renderDayView(container) {
     const dateText = document.createElement('div');
     dateText.id = 'js_dayview_date';
     dateText.classList.add('tap-active');
-    dateText.style.cssText = 'text-align: center; font-size: 17px; color: var(--weui-FG-0); cursor: pointer; padding: 4px 10px; border-radius: 8px;';
+    dateText.style.cssText = 'display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--weui-FG-0); cursor: pointer; padding: 4px 10px; border-radius: 8px;';
     dateText.addEventListener('click', () => {
         CalendarPicker.show({
             initialDate: currentDay,
@@ -131,7 +131,7 @@ function renderDayView(container) {
 
     // 右箭头
     const rightBtn = document.createElement('div');
-    rightBtn.innerHTML = '<i class="ri-arrow-right-s-line" style="font-size: 24px;"></i>';
+    rightBtn.innerHTML = '<i class="ri-arrow-right-s-line" style="font-size: 22px;"></i>';
     rightBtn.classList.add('tap-active');
     rightBtn.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; color: var(--weui-FG-0); border-radius: 50%;';
     rightBtn.addEventListener('click', () => {
@@ -162,12 +162,19 @@ function renderDayViewCourses(container) {
     const dateText = container.querySelector('#js_dayview_date');
 
     // 更新日期文本
+    const today = new Date();
     const displayDate = new Date(currentDay);
+    const isToday = today.getFullYear() === displayDate.getFullYear() &&
+                    today.getMonth() === displayDate.getMonth() &&
+                    today.getDate() === displayDate.getDate();
     const weekdayKeys = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weekDay = getI18n('schedule', `weekday${weekdayKeys[displayDate.getDay()]}`);
     const month = String(displayDate.getMonth() + 1).padStart(2, '0');
     const day = String(displayDate.getDate()).padStart(2, '0');
-    dateText.textContent = `${displayDate.getFullYear()}-${month}-${day} ${weekDay}`;
+    const todayAbbr = getI18n('schedule', 'todayAbbr');
+    dateText.innerHTML = isToday
+        ? `<span style="background: var(--weui-BRAND); color: #fff; border-radius: 10px; padding: 2px 6px; margin-right: 6px; font-size: 10px;">${todayAbbr}</span>${displayDate.getFullYear()}-${month}-${day} ${weekDay}`
+        : `${displayDate.getFullYear()}-${month}-${day} ${weekDay}`;
 
     courseList.innerHTML = '';
 
@@ -212,21 +219,21 @@ function renderDayViewCourses(container) {
                 // 左侧节次
                 const leftSection = document.createElement('div');
                 leftSection.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; flex-shrink: 0; border-right: 1px solid var(--weui-FG-3); padding: 8px;';
-                leftSection.innerHTML = `<div style="font-size: 24px; color: var(--weui-FG-0); font-weight: 600; line-height: 1.2;">${section}</div><div style="font-size: 10px; color: var(--weui-FG-2); margin-top: 2px;">${slot ? `${slot.start}-${slot.end}` : ''}</div>`;
+                leftSection.innerHTML = `<div style="font-size: 24px; color: var(--weui-FG-0); font-weight: 600; line-height: 1.2;">${section}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 2px;">${slot ? `${slot.start}-${slot.end}` : ''}</div>`;
 
                 // 右侧课程信息
                 const rightInfo = document.createElement('div');
                 rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
 
                 const nameStyle = 'font-size: 16px; color: var(--weui-FG-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4;';
-                const metaStyle = 'font-size: 12px; color: var(--weui-FG-2); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px;';
+                const metaStyle = 'font-size: 12px; color: var(--weui-FG-1); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px;';
 
                 let metaHtml = '';
                 if (course.location) {
-                    metaHtml += `<span style="display: inline-flex; align-items: center; margin-right: 12px;"><i class="ri-map-pin-fill" style="margin-right: 2px; font-size: 12px;"></i>${course.location}</span>`;
+                    metaHtml += `<span style="display: inline-flex; align-items: center; margin-right: 12px; color: var(--weui-FG-1);"><i class="ri-map-pin-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${course.location}</span>`;
                 }
-                if (showTeacher() && course.teacher) {
-                    metaHtml += `<span style="display: inline-flex; align-items: center;"><i class="ri-user-fill" style="margin-right: 2px; font-size: 12px;"></i>${course.teacher}</span>`;
+                if (course.teacher) {
+                    metaHtml += `<span style="display: inline-flex; align-items: center; color: var(--weui-FG-1);"><i class="ri-user-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${course.teacher}</span>`;
                 }
 
                 rightInfo.innerHTML = `<div style="${nameStyle}">${course.name}</div><div style="${metaStyle}">${metaHtml}</div>`;
@@ -244,8 +251,8 @@ function renderDayViewCourses(container) {
 // 生成课程详情弹窗内容
 function generateCourseDetailContent(courses) {
     const lineStyle = 'display: flex; align-items: flex-start; line-height: 1.6; font-size: 16px; margin-top: 4px;';
-    const iconStyle = 'color: var(--weui-FG-2); margin-right: 8px; flex-shrink: 0; font-size: 16px;';
-    const spanStyle = 'text-align: left; width: 0; flex: 1;';
+    const iconStyle = 'color: var(--weui-FG-1); margin-right: 8px; flex-shrink: 0; font-size: 16px;';
+    const spanStyle = 'text-align: left; width: 0; flex: 1; color: var(--weui-FG-1);';
     return courses.map((course, index) => {
         const separator = index > 0 ? '<div style="border-top: 1px solid var(--weui-FG-3); margin: 22px 0 18px;"></div>' : '';
         return `${separator}
@@ -416,9 +423,127 @@ function renderWeekView(container) {
     }
 }
 
-// 学期视图渲染（留空）
+// 学期视图渲染
 function renderSemesterView(container) {
-    // TODO: 实现学期视图渲染
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+
+    // 创建课程卡片容器
+    const courseList = document.createElement('div');
+    courseList.id = 'js_semesterview_courses';
+    courseList.style.cssText = 'flex: 1; overflow-y: auto; padding: 12px;';
+    container.appendChild(courseList);
+
+    // 获取所有课程数据
+    const courses = getCourses(currentSemesterId);
+
+    if (!courses || courses.length === 0) {
+        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-book-2-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourseInSemester')}</div></div>`;
+        return;
+    }
+
+    // 收集所有课程的节次和星期信息
+    const courseScheduleMap = new Map();
+
+    for (const course of courses) {
+        for (const [day, sections] of Object.entries(course.schedule)) {
+            const dayNum = parseInt(day);
+            for (const section of sections) {
+                const key = `${course.id}`;
+                if (!courseScheduleMap.has(key)) {
+                    courseScheduleMap.set(key, {
+                        course: course,
+                        schedules: []
+                    });
+                }
+                courseScheduleMap.get(key).schedules.push({ day: dayNum, section });
+            }
+        }
+    }
+
+    // 渲染每个课程的卡片
+    for (const [key, { course, schedules }] of courseScheduleMap) {
+        // 按星期和节次排序
+        schedules.sort((a, b) => {
+            if (a.day !== b.day) return a.day - b.day;
+            return a.section - b.section;
+        });
+
+        // 生成节次信息，合并连续的节次
+        const weekdayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const scheduleTexts = [];
+        // 按星期分组
+        const daySchedules = new Map();
+        for (const s of schedules) {
+            if (!daySchedules.has(s.day)) {
+                daySchedules.set(s.day, []);
+            }
+            daySchedules.get(s.day).push(s.section);
+        }
+        // 合并连续节次
+        for (const [day, sections] of daySchedules) {
+            const weekday = getI18n('schedule', `weekday${weekdayKeys[day - 1]}`);
+            sections.sort((a, b) => a - b);
+            let result = weekday;
+            let start = sections[0];
+            let prev = start;
+            for (let i = 1; i <= sections.length; i++) {
+                const current = sections[i];
+                if (current !== prev + 1) {
+                    const sectionStr = start === prev ? start : `${start}-${prev}`;
+                    result += result === weekday ? ` ${sectionStr}` : `,${sectionStr}`;
+                    start = current;
+                }
+                prev = current;
+            }
+            scheduleTexts.push(`${result} ${getI18n('schedule', 'sectionSuffix')}`);
+        }
+
+        const timeStr = scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
+
+        const card = document.createElement('div');
+        card.style.cssText = 'display: flex; min-height: 120px; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
+        card.classList.add(`course-bg-${course.id % 10}`);
+
+        // 左侧课程名称
+        const leftName = document.createElement('div');
+        leftName.style.cssText = 'width: 100px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 12px; border-right: 1px solid var(--weui-FG-3);';
+        leftName.innerHTML = `<div style="font-size: 15px; color: var(--weui-FG-0); line-height: 1.4; text-align: center; word-break: break-all;">${course.name}</div>`;
+
+        // 右侧课程信息
+        const rightInfo = document.createElement('div');
+        rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
+
+        const metaStyle = 'font-size: 13px; color: var(--weui-FG-2); margin-top: 8px; line-height: 1.5;';
+
+        let metaHtml = '';
+        // 地点
+        if (course.location) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-map-pin-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'location')}${course.location}</span></div>`;
+        }
+        // 教师
+        if (showTeacher() && course.teacher) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-user-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'teacher')}${course.teacher}</span></div>`;
+        }
+        // 节次
+        if (timeStr) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-time-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'time')}${timeStr}</span></div>`;
+        }
+        // 周次
+        const weeksText = formatWeeks(course.weeks);
+        if (weeksText) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-calendar-check-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'week')}${formatWeeks(course.weeks)}</span></div>`;
+        }
+
+        rightInfo.innerHTML = metaHtml;
+
+        card.appendChild(leftName);
+        card.appendChild(rightInfo);
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => showCourseDetailDialog([course]));
+        courseList.appendChild(card);
+    }
 }
 
 // 课程页面起始加载方法

@@ -26,7 +26,6 @@ const CSS = `
 }
 .calendar-year-month {
   font-size: 17px;
-  font-weight: 600;
 }
 .calendar-weekdays {
   display: grid;

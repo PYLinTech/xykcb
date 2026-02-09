@@ -43,9 +43,14 @@
     "location": "Location: ",
     "teacher": "Teacher: ",
     "week": "Week: ",
+    "time": "Time: ",
     "noCourse": "No courses today",
     "outOfSemester": "Date is outside the semester range",
-    "close": "Close"
+    "close": "Close",
+    "noCourseInSemester": "No courses this semester",
+    "todayAbbr": "Tdy",
+    "sectionSuffix": "Per",
+    "scheduleSeparator": "; "
   },
   "login": {
     "title": "Login to Academic System",

@@ -43,9 +43,14 @@
     "location": "地点：",
     "teacher": "教师：",
     "week": "周次：",
+    "time": "时间：",
     "noCourse": "当天无课程",
     "outOfSemester": "日期不在学期范围内",
-    "close": "关闭"
+    "close": "关闭",
+    "noCourseInSemester": "本学期暂无课程",
+    "todayAbbr": "今",
+    "sectionSuffix": "节",
+    "scheduleSeparator": "；"
   },
   "login": {
     "title": "登录教务系统",
