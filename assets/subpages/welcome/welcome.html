@@ -1,0 +1,50 @@
+<style>
+  #js_wrp, #js_wrp .weui-bottom-fixed-opr-page__tool {
+    background-color: var(--weui-BG-1);
+  }
+  #js_wrp .weui-bottom-fixed-opr-page__tool::before {
+    background: linear-gradient(0deg, var(--weui-BG-1), hsla(0,0%,100%,0)) !important;
+  }
+  #welcome-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--weui-FG-0);
+    margin: 16px 0 24px;
+    text-align: center;
+  }
+  .js_wrp_content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--weui-FG-1);
+    margin: 0 16px 16px;
+    text-align: justify;
+  }
+  .js_wrp_content a {
+    color: var(--weui-FG-1);
+    text-decoration: underline;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--weui-FG-1);
+    margin: 0 16px 16px;
+  }
+  #js_wrp .weui-btn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+<div class="weui-bottom-fixed-opr-page" id="js_wrp">
+  <div class="weui-bottom-fixed-opr-page__content">
+    <h2 id="welcome-title" data-i18n="title">用户协议与隐私政策</h2>
+    <div class="js_wrp_content" data-i18n="agreement.html">正在加载用户协议...</div>
+    <hr>
+    <div class="js_wrp_content" data-i18n="privacy.html">正在加载隐私政策...</div>
+  </div>
+  <div class="weui-bottom-fixed-opr-page__tool">
+    <div class="weui-bottom-fixed-opr">
+      <a role="button" class="weui-btn weui-btn_default" href="javascript:" id="js_disagree_btn" data-i18n="btnDisagree">不同意并退出</a>
+      <a role="button" class="weui-btn weui-btn_primary" href="javascript:" id="js_agree_btn" data-i18n="btnAgree">已阅读并同意</a>
+    </div>
+  </div>
+</div>

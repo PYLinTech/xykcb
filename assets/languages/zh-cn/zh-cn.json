@@ -13,7 +13,7 @@
     "cancel": "取消"
   },
   "index": {
-    "title": "小雨课程表",
+    "xykcb": "小雨课程表",
     "schedule": "课程",
     "mine": "我的",
     "settings": "设置"
@@ -61,6 +61,12 @@
     "placeholderPassword": "请输入密码",
     "btnLogin": "登录",
     "btnBack": "返回"
+  },
+  "welcome": {
+    "title": "用户协议与隐私政策",
+    "content": "协议内容...",
+    "btnAgree": "已阅读并同意",
+    "btnDisagree": "不同意并退出"
   },
   "mine": {
     "account": "账号",

@@ -13,7 +13,7 @@
     "cancel": "Cancel"
   },
   "index": {
-    "title": "Xiaoyu Schedule",
+    "xykcb": "Xiaoyu Schedule",
     "schedule": "Schedule",
     "mine": "Mine",
     "settings": "Settings"
@@ -61,6 +61,12 @@
     "placeholderPassword": "Enter password",
     "btnLogin": "Login",
     "btnBack": "Back"
+  },
+  "welcome": {
+    "title": "User Agreement & Privacy Policy",
+    "content": "Agreement content...",
+    "btnAgree": "Agree",
+    "btnDisagree": "Disagree"
   },
   "mine": {
     "account": "Account",
