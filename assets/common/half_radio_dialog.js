@@ -25,6 +25,7 @@ const HalfRadioDialog = {
           <div class="weui-half-screen-dialog__hd__main">
             <strong class="weui-half-screen-dialog__title">${title}</strong>
           </div>
+          <i class="weui-half-screen-dialog__close ri-close-line" id="js_half_dialog_close" style="font-size: 20px; cursor: pointer;"></i>
         </div>
         <div class="weui-half-screen-dialog__bd">
           <div class="weui-cells weui-cells_radio">${items}</div>
@@ -52,6 +53,7 @@ const HalfRadioDialog = {
     };
 
     mask.addEventListener('click', close);
+    wrap.querySelector('#js_half_dialog_close').addEventListener('click', close);
 
     wrap.addEventListener('click', e => {
       const label = e.target.closest('.weui-check__label');

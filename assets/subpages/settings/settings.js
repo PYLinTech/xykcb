@@ -15,13 +15,13 @@ const defaults = {
 const i18nKeys = {
   language: { title: 'selectLanguage', options: ['langZhCn', 'langEn'] },
   theme: { title: 'selectTheme', options: ['themeSystem', 'themeLight', 'themeDark'] },
-  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW'] }
+  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW', 'fontPFSST'] }
 };
 
 const optionValues = {
   language: ['zh-cn', 'en'],
   theme: ['system', 'light', 'dark'],
-  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen']
+  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen', 'PingFangSanSheng']
 };
 
 const switchConfig = ['showWeekend', 'showTeacher', 'showBorder'];
@@ -59,7 +59,7 @@ function getLabel(key, value) {
   const map = {
     language: { 'zh-cn': 'langZhCn', en: 'langEn' },
     theme: { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' },
-    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW' }
+    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW', PingFangSanSheng: 'fontPFSST' }
   };
   return getI18n('settings', map[key][value]);
 }

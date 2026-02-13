@@ -2,7 +2,8 @@
 const fontConfig = {
   'DingTalk-JinBuTi': 'DingTalk-JinBuTi.ttf',
   'MiSansVF': 'MiSansVF.ttf',
-  'LXGWWenKaiScreen': 'LXGWWenKaiScreen.ttf'
+  'LXGWWenKaiScreen': 'LXGWWenKaiScreen.ttf',
+  'PingFangSanSheng': 'PingFangSanShengTi.ttf'
 };
 
 // 加载字体
