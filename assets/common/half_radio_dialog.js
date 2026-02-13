@@ -15,6 +15,9 @@ const HalfRadioDialog = {
 
     const wrap = document.createElement('div');
     wrap.id = 'halfRadioDialogWrap';
+    wrap.style.position = 'absolute';
+    wrap.style.inset = '0';
+    wrap.style.zIndex = '10000';
     wrap.innerHTML = `
       <div class="weui-mask"></div>
       <div class="weui-half-screen-dialog" style="background-color: var(--weui-BG-1)">

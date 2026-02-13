@@ -6,7 +6,7 @@ let hideTimer = null;
 
 // Toast 配置
 const TOAST_CONFIG = {
-    zIndex: 9999,
+    zIndex: 10010,
     defaultDuration: 2000,
     fadeDuration: 200
 };
@@ -46,7 +46,7 @@ function createToastElement(type, message) {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: String(TOAST_CONFIG.zIndex + 1),
+        zIndex: String(TOAST_CONFIG.zIndex),
         transition: `opacity ${TOAST_CONFIG.fadeDuration}ms`
     });
 

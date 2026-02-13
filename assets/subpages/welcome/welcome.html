@@ -33,8 +33,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .language-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--weui-FG-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .language-btn .ri-translate {
+    color: var(--weui-FG-0);
+    font-size: 16px;
+  }
 </style>
 <div class="weui-bottom-fixed-opr-page" id="js_wrp">
+  <div class="language-btn tap-active" id="js_lang_btn">
+    <i class="ri-translate"></i>
+  </div>
   <div class="weui-bottom-fixed-opr-page__content">
     <h2 id="welcome-title" data-i18n="title">用户协议与隐私政策</h2>
     <div class="js_wrp_content" data-i18n="agreement.html">正在加载用户协议...</div>
