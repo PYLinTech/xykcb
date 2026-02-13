@@ -81,6 +81,7 @@
     "language": "Language",
     "theme": "Theme",
     "font": "Font",
+    "color": "Color",
     "weekViewStyle": "Week View Style",
     "showWeekend": "Show Weekend",
     "showTeacher": "Show Teacher",
@@ -88,6 +89,7 @@
     "selectLanguage": "Select Language",
     "selectTheme": "Select Theme",
     "selectFont": "Select Font",
+    "selectColor": "Select Color",
     "langZhCn": "简体中文",
     "langEn": "English",
     "themeSystem": "Follow System",
@@ -97,6 +99,13 @@
     "fontDingTalk": "DingTalk JinBuTi",
     "fontMiSans": "MiSans",
     "fontLXGW": "LXGW WenKai",
-    "fontPFSST": "PingFangSanShengTi"
+    "fontPFSST": "PingFangSanShengTi",
+    "colorAppleGreen": "Apple Green",
+    "colorVividYellow": "Vivid Yellow",
+    "colorDreamyPurple": "Dreamy Purple",
+    "colorIceBlue": "Ice Blue",
+    "colorSheerPink": "Sheer Pink",
+    "colorDistantCyan": "Distant Cyan",
+    "colorFreedomOrange": "Freedom Orange"
   }
 }

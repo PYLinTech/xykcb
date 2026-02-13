@@ -1,12 +1,13 @@
 import { translatePage, getI18n, onLanguageChange } from '/assets/init/languages.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { loadFont } from '/assets/init/fonts.js';
-import { applyTheme } from '/assets/init/themes.js';
+import { applyTheme, applyColor } from '/assets/init/themes.js';
 
 const defaults = {
   language: 'zh-cn',
   theme: 'system',
   font: 'DingTalk-JinBuTi',
+  color: 'appleGreen',
   showWeekend: 'true',
   showTeacher: 'true',
   showBorder: 'true'
@@ -15,13 +16,15 @@ const defaults = {
 const i18nKeys = {
   language: { title: 'selectLanguage', options: ['langZhCn', 'langEn'] },
   theme: { title: 'selectTheme', options: ['themeSystem', 'themeLight', 'themeDark'] },
-  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW', 'fontPFSST'] }
+  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW', 'fontPFSST'] },
+  color: { title: 'selectColor', options: ['colorAppleGreen', 'colorVividYellow', 'colorDreamyPurple', 'colorIceBlue', 'colorSheerPink', 'colorDistantCyan', 'colorFreedomOrange'] }
 };
 
 const optionValues = {
   language: ['zh-cn', 'en'],
   theme: ['system', 'light', 'dark'],
-  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen', 'PingFangSanSheng']
+  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen', 'PingFangSanSheng'],
+  color: ['appleGreen', 'vividYellow', 'dreamyPurple', 'iceBlue', 'sheerPink', 'distantCyan', 'freedomOrange']
 };
 
 const switchConfig = ['showWeekend', 'showTeacher', 'showBorder'];
@@ -51,6 +54,14 @@ function getConfig() {
         value: v,
         label: getI18n('settings', i18nKeys.font.options[i])
       }))
+    },
+    color: {
+      default: defaults.color,
+      title: getI18n('settings', i18nKeys.color.title),
+      options: optionValues.color.map((v, i) => ({
+        value: v,
+        label: getI18n('settings', i18nKeys.color.options[i])
+      }))
     }
   };
 }
@@ -59,14 +70,15 @@ function getLabel(key, value) {
   const map = {
     language: { 'zh-cn': 'langZhCn', en: 'langEn' },
     theme: { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' },
-    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW', PingFangSanSheng: 'fontPFSST' }
+    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW', PingFangSanSheng: 'fontPFSST' },
+    color: { appleGreen: 'colorAppleGreen', vividYellow: 'colorVividYellow', dreamyPurple: 'colorDreamyPurple', iceBlue: 'colorIceBlue', sheerPink: 'colorSheerPink', distantCyan: 'colorDistantCyan', freedomOrange: 'colorFreedomOrange' }
   };
   return getI18n('settings', map[key][value]);
 }
 
 const getSetting = key => localStorage.getItem(`setting_${key}`) ?? defaults[key];
 const saveSetting = (key, value) => localStorage.setItem(`setting_${key}`, value);
-const idMap = { language: 'lang', theme: 'theme', font: 'font' };
+const idMap = { language: 'lang', theme: 'theme', font: 'font', color: 'color' };
 
 export async function load(container) {
   const config = getConfig();
@@ -94,6 +106,7 @@ export async function load(container) {
             if (key === 'language') await onLanguageChange(value);
             if (key === 'font') await loadFont(value);
             if (key === 'theme') await applyTheme(value);
+            if (key === 'color') await applyColor(value);
           }
         });
       });

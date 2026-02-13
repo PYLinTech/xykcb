@@ -81,6 +81,7 @@
     "language": "语言",
     "theme": "主题",
     "font": "字体",
+    "color": "颜色",
     "weekViewStyle": "周视图样式",
     "showWeekend": "显示周末",
     "showTeacher": "显示教师",
@@ -88,6 +89,7 @@
     "selectLanguage": "选择语言",
     "selectTheme": "选择主题",
     "selectFont": "选择字体",
+    "selectColor": "选择颜色",
     "langZhCn": "简体中文",
     "langEn": "English",
     "themeSystem": "跟随系统",
@@ -97,6 +99,13 @@
     "fontDingTalk": "钉钉进步体",
     "fontMiSans": "MiSans",
     "fontLXGW": "霞鹜文楷",
-    "fontPFSST": "平方三生体"
+    "fontPFSST": "平方三生体",
+    "colorAppleGreen": "苹果绿",
+    "colorVividYellow": "活力黄",
+    "colorDreamyPurple": "梦幻紫",
+    "colorIceBlue": "冰晶蓝",
+    "colorSheerPink": "薄纱粉",
+    "colorDistantCyan": "远山青",
+    "colorFreedomOrange": "自由橙"
   }
 }
