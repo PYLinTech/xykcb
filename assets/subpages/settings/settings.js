@@ -16,14 +16,14 @@ const defaults = {
 const i18nKeys = {
   language: { title: 'selectLanguage', options: ['langZhCn', 'langEn'] },
   theme: { title: 'selectTheme', options: ['themeSystem', 'themeLight', 'themeDark'] },
-  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW', 'fontPFSST'] },
+  font: { title: 'selectFont', options: ['fontSystem', 'fontDingTalk', 'fontMiSans', 'fontLXGW', 'fontPFSST', 'fontChildFunSans'] },
   color: { title: 'selectColor', options: ['colorAppleGreen', 'colorVividYellow', 'colorDreamyPurple', 'colorIceBlue', 'colorSheerPink', 'colorDistantCyan', 'colorFreedomOrange'] }
 };
 
 const optionValues = {
   language: ['zh-cn', 'en'],
   theme: ['system', 'light', 'dark'],
-  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen', 'PingFangSanSheng'],
+  font: ['system', 'DingTalk-JinBuTi', 'MiSansVF', 'LXGWWenKaiScreen', 'PingFangSanSheng', 'ChildFunSans'],
   color: ['appleGreen', 'vividYellow', 'dreamyPurple', 'iceBlue', 'sheerPink', 'distantCyan', 'freedomOrange']
 };
 
@@ -70,7 +70,7 @@ function getLabel(key, value) {
   const map = {
     language: { 'zh-cn': 'langZhCn', en: 'langEn' },
     theme: { system: 'themeSystem', light: 'themeLight', dark: 'themeDark' },
-    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW', PingFangSanSheng: 'fontPFSST' },
+    font: { system: 'fontSystem', 'DingTalk-JinBuTi': 'fontDingTalk', MiSansVF: 'fontMiSans', 'LXGWWenKaiScreen': 'fontLXGW', PingFangSanSheng: 'fontPFSST', ChildFunSans: 'fontChildFunSans' },
     color: { appleGreen: 'colorAppleGreen', vividYellow: 'colorVividYellow', dreamyPurple: 'colorDreamyPurple', iceBlue: 'colorIceBlue', sheerPink: 'colorSheerPink', distantCyan: 'colorDistantCyan', freedomOrange: 'colorFreedomOrange' }
   };
   return getI18n('settings', map[key][value]);
