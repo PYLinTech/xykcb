@@ -6,14 +6,13 @@ import { getI18n } from '/assets/init/languages.js';
 const SCHOOL_API = 'https://api.pylin.cn/xykcb/get-support-school';
 const SCHOOL_DATA_KEY = 'login_school_data';
 
-function getSavedSchool() {
-  const data = localStorage.getItem(SCHOOL_DATA_KEY);
-  return data ? JSON.parse(data) : null;
-}
+const getSavedSchool = () => JSON.parse(localStorage.getItem(SCHOOL_DATA_KEY) || 'null');
+const saveSchool = (school) => localStorage.setItem(SCHOOL_DATA_KEY, JSON.stringify(school));
 
-function saveSchool(school) {
-  localStorage.setItem(SCHOOL_DATA_KEY, JSON.stringify(school));
-}
+const getSchoolLabel = (school) => getI18n('desc_key', school.desc_key);
+
+const sortSchoolsById = (schools) =>
+  [...schools].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
 export async function loadLogin() {
   const response = await fetch('/assets/subpages/login/login.html');
@@ -22,7 +21,7 @@ export async function loadLogin() {
 
   const savedSchool = getSavedSchool();
   if (savedSchool) {
-    document.getElementById('js_school_text').textContent = getI18n('desc_key', savedSchool.desc_key);
+    document.getElementById('js_school_text').textContent = getSchoolLabel(savedSchool);
   }
 
   bindEvents();
@@ -49,25 +48,24 @@ async function handleSchoolClick() {
 }
 
 function showSchoolDialog(schools) {
-  const sortedData = [...schools].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-
+  const sortedData = sortSchoolsById(schools);
   const savedSchool = getSavedSchool();
-  const selected = savedSchool ? savedSchool.id : null;
+  const selected = savedSchool?.desc_key ?? null;
 
   const options = sortedData.map(school => ({
-    label: getI18n('desc_key', school.desc_key),
-    value: school.id
+    label: getSchoolLabel(school),
+    value: school.desc_key
   }));
 
   HalfRadioDialog.show({
     title: getI18n('login', 'selectSchool'),
-    options: options,
-    selected: selected,
+    options,
+    selected,
     onChange: (value) => {
-      const school = sortedData.find(s => s.id === value);
+      const school = sortedData.find(s => s.desc_key === value);
       if (school) {
         saveSchool(school);
-        document.getElementById('js_school_text').textContent = getI18n('desc_key', school.desc_key);
+        document.getElementById('js_school_text').textContent = getSchoolLabel(school);
       }
     }
   });
