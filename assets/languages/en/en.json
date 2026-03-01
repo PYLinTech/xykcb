@@ -13,6 +13,18 @@
     "cancel": "Cancel",
     "toastLoading": "Loading..."
   },
+  "desc_key": {
+    "hnit_a": "Hunan Institute Of Technology (Mobile)",
+    "hnit_b": "Hunan Institute Of Technology (PC)",
+    "hynu": "Hengyang Normal University",
+    "usc": "University Of South China",
+    "001": "Missing required parameters",
+    "002": "Unsupported school",
+    "003": "Invalid account or password",
+    "004": "Login failed",
+    "005": "Method not allowed",
+    "006": "Internal server error"
+  },
   "index": {
     "xykcb": "Xiaoyu Schedule",
     "schedule": "Schedule",
