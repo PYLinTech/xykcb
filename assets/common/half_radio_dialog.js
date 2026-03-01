@@ -38,9 +38,14 @@ const HalfRadioDialog = {
     const mask = wrap.querySelector('.weui-mask');
 
     const animate = (el, prop, start, end) => {
-      el.style.transition = `${prop} 0.3s`;
+      el.style.transition = 'none';
       el.style[prop] = start;
-      requestAnimationFrame(() => el.style[prop] = end);
+      // 强制重绘
+      el.offsetHeight;
+      requestAnimationFrame(() => {
+        el.style.transition = `${prop} 0.3s`;
+        el.style[prop] = end;
+      });
     };
 
     animate(dialog, 'transform', 'translateY(100%)', 'translateY(0)');

@@ -6,7 +6,7 @@ let hideTimer = null;
 
 // Toast 配置
 const TOAST_CONFIG = {
-    zIndex: 10010,
+    zIndex: 10000,
     defaultDuration: 2000,
     fadeDuration: 200
 };

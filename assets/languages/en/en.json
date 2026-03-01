@@ -10,7 +10,8 @@
     "weekday7": "Sun",
     "selectDate": "Select Date",
     "today": "Today",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "toastLoading": "Loading..."
   },
   "index": {
     "xykcb": "Xiaoyu Schedule",
@@ -55,10 +56,14 @@
   "login": {
     "title": "Login to Academic System",
     "desc": "Please enter your academic system account and password to log in. Your credentials will only be saved locally.",
+    "labelSchool": "School",
     "labelUsername": "Account",
     "labelPassword": "Password",
+    "placeholderSchool": "Select school",
     "placeholderUsername": "Enter academic account",
     "placeholderPassword": "Enter password",
+    "selectSchool": "Select School",
+    "toastLoadSchoolError": "Failed to load school list",
     "btnLogin": "Login",
     "btnBack": "Back"
   },

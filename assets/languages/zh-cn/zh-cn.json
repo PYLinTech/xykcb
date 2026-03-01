@@ -10,7 +10,8 @@
     "weekday7": "日",
     "selectDate": "选择日期",
     "today": "今天",
-    "cancel": "取消"
+    "cancel": "取消",
+    "toastLoading": "加载中..."
   },
   "index": {
     "xykcb": "小雨课程表",
@@ -55,10 +56,14 @@
   "login": {
     "title": "登录教务系统",
     "desc": "请输入教务系统的账号及密码进行登录，账号及密码仅会本地保存",
+    "labelSchool": "学校",
     "labelUsername": "账号",
     "labelPassword": "密码",
+    "placeholderSchool": "请选择学校",
     "placeholderUsername": "请输入教务账号",
     "placeholderPassword": "请输入密码",
+    "selectSchool": "选择学校",
+    "toastLoadSchoolError": "获取学校列表失败",
     "btnLogin": "登录",
     "btnBack": "返回"
   },
