@@ -27,6 +27,17 @@ const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
 
+// 根据课程名称生成颜色索引
+const getCourseColorIndex = (course) => {
+    const name = course.name || '';
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash) + name.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) % 10;
+};
+
 //顶部工具栏显示当前视图选项
 function updateContentView(container) {
     container.querySelector('#js_content_view_label').textContent = getI18n('schedule', viewConfig[scheduleView].labelKey);
@@ -211,7 +222,7 @@ function renderDayViewCourses(container) {
                 const slot = timeSlots[section - 1];
                 const card = document.createElement('div');
                 card.style.cssText = 'display: flex; min-height: 100px; margin-bottom: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
-                card.classList.add(`course-bg-${course.id % 10}`);
+                card.classList.add(`course-bg-${getCourseColorIndex(course)}`);
 
                 // 左侧节次
                 const leftSection = document.createElement('div');
@@ -411,7 +422,7 @@ function renderWeekView(container) {
             : '';
         const teacherHtml = displayTeacher ? `<div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 6px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.teacher}</div>` : '';
         cell.innerHTML = `<div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px;">${multipleIndicator}<div style="font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.name}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 8px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.location}</div>${teacherHtml}</div>`;
-        cell.classList.add(`course-bg-${course.id % 10}`);
+        cell.classList.add(`course-bg-${getCourseColorIndex(course)}`);
         cell.style.position = 'relative';
         cell.style.overflow = 'hidden';
         // 添加点击事件
@@ -501,7 +512,7 @@ function renderSemesterView(container) {
 
         const card = document.createElement('div');
         card.style.cssText = 'display: flex; min-height: 120px; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
-        card.classList.add(`course-bg-${course.id % 10}`);
+        card.classList.add(`course-bg-${getCourseColorIndex(course)}`);
 
         // 左侧课程名称
         const leftName = document.createElement('div');
