@@ -63,7 +63,9 @@
     "noCourseInSemester": "本学期暂无课程",
     "todayAbbr": "今",
     "sectionSuffix": "节",
-    "scheduleSeparator": "；"
+    "scheduleSeparator": "；",
+    "goLogin": "去登录",
+    "relogin": "重新登录"
   },
   "login": {
     "title": "登录教务系统",

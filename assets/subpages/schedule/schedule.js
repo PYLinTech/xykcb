@@ -190,7 +190,16 @@ function renderDayViewCourses(container) {
     const coursesResult = getCoursesByDate(currentSemesterId, currentDay);
 
     if (coursesResult === null) {
-        toast.warn(getI18n('schedule', 'loadCourseError'));
+        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-calendar-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourse')}</div></div>`;
+        // 检查登录状态
+        const savedUser = getSavedUser();
+        if (!savedUser || savedUser.isLoggedIn === false) {
+            toast.warn(getI18n('login', 'errorNotLoggedIn'));
+            loadLogin();
+        } else {
+            toast.warn(getI18n('schedule', 'loadCourseError'));
+        }
+        return;
     } else if (coursesResult === 'out') {
         courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-calendar-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'outOfSemester')}</div></div>`;
     } else if (coursesResult === 'none' || !coursesResult?.length) {
@@ -329,8 +338,22 @@ function showCourseDetailDialog(courses) {
 function renderWeekView(container) {
     container.innerHTML = '';
 
-    // 如果课程数据加载失败，不渲染内容
+    // 如果课程数据加载失败，显示提示
     if (!courseDataLoaded) {
+        const savedUser = getSavedUser();
+        const isLoggedIn = savedUser && savedUser.isLoggedIn !== false;
+        const btnText = isLoggedIn ? getI18n('schedule', 'relogin') : getI18n('schedule', 'goLogin');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.innerHTML = `
+            <div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;">
+                <i class="ri-error-warning-line" style="font-size: 48px; margin-bottom: 12px;"></i>
+                <div style="margin-top: 8px;">${getI18n('schedule', 'loadCourseError')}</div>
+            </div>
+            <div style="flex: 1; min-height: 30px;"></div>
+            <a id="js_weekview_login_btn" class="weui-btn weui-btn_primary" style="margin-bottom: 100px;">${btnText}</a>
+        `;
+        container.querySelector('#js_weekview_login_btn').addEventListener('click', () => loadLogin());
         return;
     }
     container.style.display = 'grid';
@@ -482,6 +505,14 @@ function renderSemesterView(container) {
 
     if (!courses || courses.length === 0) {
         courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-book-2-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourseInSemester')}</div></div>`;
+        // 检查登录状态
+        const savedUser = getSavedUser();
+        if (!savedUser || savedUser.isLoggedIn === false) {
+            toast.warn(getI18n('login', 'errorNotLoggedIn'));
+            loadLogin();
+        } else {
+            toast.warn(getI18n('schedule', 'loadCourseError'));
+        }
         return;
     }
 
@@ -648,6 +679,13 @@ export async function load(container) {
         //学期选择器
         const currentSemester = e.target.closest('#js_current_semester');
         if (currentSemester) {
+            //检查登录状态
+            const savedUser = getSavedUser();
+            if (!savedUser || savedUser.isLoggedIn === false) {
+                toast.warn(getI18n('login', 'errorNotLoggedIn'));
+                loadLogin();
+                return;
+            }
             const availableSemesters = getAvailableSemesters();
             if (availableSemesters.length > 0) {
                 const options = availableSemesters.map(id => ({ value: id, label: id }));
@@ -673,6 +711,13 @@ export async function load(container) {
         //周次选择器
         const currentWeekBtn = e.target.closest('#js_current_week');
         if (currentWeekBtn) {
+            //检查登录状态
+            const savedUser = getSavedUser();
+            if (!savedUser || savedUser.isLoggedIn === false) {
+                toast.warn(getI18n('login', 'errorNotLoggedIn'));
+                loadLogin();
+                return;
+            }
             const semesterConfig = getSemesterConfig(currentSemesterId);
             if (semesterConfig) {
                 const totalWeeks = semesterConfig.totalWeeks;

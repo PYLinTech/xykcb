@@ -63,7 +63,9 @@
     "noCourseInSemester": "No courses this semester",
     "todayAbbr": "Tdy",
     "sectionSuffix": "Per",
-    "scheduleSeparator": "; "
+    "scheduleSeparator": "; ",
+    "goLogin": "Sign in",
+    "relogin": "Sign in Again"
   },
   "login": {
     "title": "Login to Academic System",
@@ -97,8 +99,8 @@
     "account": "Account",
     "notLoggedIn": "Not Logged In",
     "loginPrompt": "Please log in to access the academic system",
-    "goLogin": "Go Login",
-    "reLogin": "Login Again",
+    "goLogin": "Sign in",
+    "reLogin": "Sign in Again",
     "functions": "Functions",
     "function": "Function"
   },
