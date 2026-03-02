@@ -80,9 +80,12 @@
     "btnBack": "Back",
     "errorSchoolRequired": "Please select a school",
     "errorAccountRequired": "Please enter your account",
+    "errorNotLoggedIn": "Please login first",
     "errorPasswordRequired": "Please enter your password",
     "loginSuccess": "Login successful",
-    "toastLoginLoading": "Logging in..."
+    "toastLoginLoading": "Logging in...",
+    "toastRefreshLoading": "Refreshing...",
+    "refreshSuccess": "Refresh successful"
   },
   "welcome": {
     "title": "User Agreement & Privacy Policy",
@@ -95,6 +98,7 @@
     "notLoggedIn": "Not Logged In",
     "loginPrompt": "Please log in to access the academic system",
     "goLogin": "Go Login",
+    "reLogin": "Login Again",
     "functions": "Functions",
     "function": "Function"
   },

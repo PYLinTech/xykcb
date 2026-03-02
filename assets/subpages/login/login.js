@@ -11,9 +11,9 @@ const TIMEOUT_MS = 30000;
 
 let currentSchool = null;
 
-const getSavedUser = () => JSON.parse(localStorage.getItem(LOGIN_USER_KEY) || 'null');
-const saveUser = (school, account, password) => {
-  localStorage.setItem(LOGIN_USER_KEY, JSON.stringify({ school, account, password }));
+export const getSavedUser = () => JSON.parse(localStorage.getItem(LOGIN_USER_KEY) || 'null');
+const saveUser = (school, account, password, isLoggedIn = true) => {
+  localStorage.setItem(LOGIN_USER_KEY, JSON.stringify({ school, account, password, isLoggedIn }));
 };
 const saveCourseData = (data) => {
   localStorage.setItem(COURSE_DATA_KEY, JSON.stringify(data));
@@ -142,13 +142,24 @@ async function handleLogin() {
     return;
   }
 
-  toast.loading(getI18n('login', 'toastLoginLoading'));
+  const result = await fetchCourseData(currentSchool, account, password);
+  if (result) {
+    saveCourseData(result);
+    saveUser(currentSchool, account, password);
+    hideOverlay();
+    // 登录成功后刷新课程页面
+    window.dispatchEvent(new CustomEvent('login-success'));
+  }
+}
+
+async function fetchCourseData(school, account, password, loadingKey = 'toastLoginLoading', successKey = 'loginSuccess') {
+  toast.loading(getI18n('login', loadingKey));
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    const res = await fetch(`${COURSE_API}?school=${currentSchool}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`, {
+    const res = await fetch(`${COURSE_API}?school=${school}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`, {
       signal: controller.signal
     });
     clearTimeout(timeout);
@@ -158,15 +169,27 @@ async function handleLogin() {
     if (!result.success || !result.data) {
       const descKey = result.desc_key || '006';
       toast.warn(getI18n('desc_key', descKey));
-      return;
+      return null;
     }
 
-    saveCourseData(result.data);
-    saveUser(currentSchool, account, password);
-    toast.success(getI18n('login', 'loginSuccess'));
-    hideOverlay();
+    toast.success(getI18n('login', successKey));
+    return result.data;
 
   } catch (error) {
     toast.warn(getI18n('desc_key', '006'));
+    return null;
+  }
+}
+
+export async function refreshCourseData() {
+  const savedUser = getSavedUser();
+  if (!savedUser?.school || !savedUser?.account || !savedUser?.password) {
+    toast.warn(getI18n('login', 'errorAccountRequired'));
+    return;
+  }
+
+  const result = await fetchCourseData(savedUser.school, savedUser.account, savedUser.password, 'toastRefreshLoading', 'refreshSuccess');
+  if (result) {
+    saveCourseData(result);
   }
 }

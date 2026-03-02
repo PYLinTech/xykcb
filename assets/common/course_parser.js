@@ -6,23 +6,17 @@
 let courseData = null;
 
 /**
- * 加载课程数据JSON文件
- * @param {string} [url] - JSON文件地址，online和merge模式需要
- * @param {string} mode - 加载模式: local(本地存储), online(在线加载), merge(合并加载)
+ * 加载课程数据
+ * @param {string} mode - 加载模式: local(本地存储), online(登录缓存), merge(合并加载)
  * @returns {Promise<boolean>} - 加载成功返回true，失败返回false
  */
-async function loadCourse(url, mode) {
+async function loadCourse(mode) {
     try {
         const loadOnline = mode === 'online' || mode === 'merge';
         const loadLocal = mode === 'local' || mode === 'merge';
 
-        if (loadOnline && !url) {
-            console.error('URL is required for online/merge mode');
-            return false;
-        }
-
         const [onlineData, localData] = await Promise.all([
-            loadOnline ? fetch(url).then(r => r.ok ? r.json() : null) : Promise.resolve(null),
+            loadOnline ? Promise.resolve(localStorage.getItem('course_data')).then(s => s ? JSON.parse(s) : null) : Promise.resolve(null),
             loadLocal ? Promise.resolve(localStorage.getItem('localCourseData')).then(s => s ? JSON.parse(s) : null) : Promise.resolve(null)
         ]);
 

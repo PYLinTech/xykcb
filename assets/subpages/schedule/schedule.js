@@ -3,6 +3,7 @@ import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { Dialog } from '/assets/common/dialog.js';
 import { CalendarPicker } from '/assets/common/calendar_picker.js';
 import { loadCourse, getCurrentSemesterAndWeek, getAvailableSemesters, getSemesterConfig, getWeekDates, getCourses, getCoursesByWeek, getCoursesByDate, formatWeeks } from '/assets/common/course_parser.js';
+import { refreshCourseData, getSavedUser, loadLogin } from '/assets/subpages/login/login.js';
 import { toast } from '/assets/common/toast.js';
 
 const viewConfig = {
@@ -10,10 +11,6 @@ const viewConfig = {
     weekView: { value: 'weekView', labelKey: 'weekView' },
     semesterView: { value: 'semesterView', labelKey: 'semesterView' }
 };
-
-// 课程数据加载配置
-const COURSE_DATA_PATH = '/test/HNIT_23000140320.json';
-const COURSE_DATA_SOURCE = 'online';
 
 let scheduleView = 'weekView';
 let currentSemesterId = null;
@@ -553,21 +550,29 @@ export async function load(container) {
     container.innerHTML = html;
     await translatePage('schedule', container);
 
+    // 检查是否自动加载课程数据
+    const savedUser = getSavedUser();
+    const isLoggedIn = savedUser?.isLoggedIn !== false;
+
     // 加载课程数据并获取当前学期和周次
-    const loaded = await loadCourse(COURSE_DATA_PATH, COURSE_DATA_SOURCE);
-    courseDataLoaded = !!loaded;
-    if (loaded) {
-        //调用方法获取当前学期及周次
-        const semesterAndWeek = getCurrentSemesterAndWeek();
-        if (semesterAndWeek) {
-            currentSemesterId = semesterAndWeek.semesterId;
-            currentWeek = semesterAndWeek.week;
-            if (semesterAndWeek.week !== 0) {
-                currentSemesterAndWeek = semesterAndWeek;
+    if (isLoggedIn && savedUser) {
+        const loaded = await loadCourse('merge');
+        courseDataLoaded = !!loaded;
+        if (loaded) {
+            //调用方法获取当前学期及周次
+            const semesterAndWeek = getCurrentSemesterAndWeek();
+            if (semesterAndWeek) {
+                currentSemesterId = semesterAndWeek.semesterId;
+                currentWeek = semesterAndWeek.week;
+                if (semesterAndWeek.week !== 0) {
+                    currentSemesterAndWeek = semesterAndWeek;
+                }
             }
+        } else {
+            toast.warn(getI18n('schedule', 'loadCourseError'));
         }
     } else {
-        toast.warn(getI18n('schedule', 'loadCourseError'));
+        courseDataLoaded = false;
     }
     //更新顶部工具栏的学期、视图、周次
     updateCurrentSemester(container);
@@ -576,8 +581,28 @@ export async function load(container) {
     //根据选择加载对应视图的课程
     renderSchedule(container);
 
+    // 监听登录成功事件，刷新课程数据
+    window.addEventListener('login-success', async () => {
+        const loaded = await loadCourse('merge');
+        courseDataLoaded = !!loaded;
+        if (loaded) {
+            const semesterAndWeek = getCurrentSemesterAndWeek();
+            if (semesterAndWeek) {
+                currentSemesterId = semesterAndWeek.semesterId;
+                currentWeek = semesterAndWeek.week;
+                if (semesterAndWeek.week !== 0) {
+                    currentSemesterAndWeek = semesterAndWeek;
+                }
+            }
+        }
+        updateCurrentSemester(container);
+        updateContentView(container);
+        updateCurrentWeek(container);
+        renderSchedule(container);
+    });
+
     // 使用事件委托确保点击事件有效
-    container.addEventListener('click', (e) => {
+    container.addEventListener('click', async (e) => {
         //学期选择器
         const currentSemester = e.target.closest('#js_current_semester');
         if (currentSemester) {
@@ -662,11 +687,19 @@ export async function load(container) {
         //刷新按钮
         const refresh = e.target.closest('#js_refresh');
         if (refresh) {
+            const savedUser = getSavedUser();
+            if (!savedUser || savedUser.isLoggedIn === false) {
+                toast.warn(getI18n('login', 'errorNotLoggedIn'));
+                loadLogin();
+                return;
+            }
             const icon = refresh.querySelector('.refresh-icon');
             icon.animate(
                 [{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }],
                 { duration: 1200, easing: 'ease' }
             );
+            // 使用本地保存的账号密码请求最新课程数据
+            await refreshCourseData();
             // 重置公共变量
             scheduleView = 'weekView';
             currentSemesterId = null;
@@ -677,25 +710,24 @@ export async function load(container) {
             currentSemesterAndWeek = null;
             courseDataLoaded = false;
             // 重新加载课程数据
-            loadCourse(COURSE_DATA_PATH, COURSE_DATA_SOURCE).then(loaded => {
-                courseDataLoaded = !!loaded;
-                if (loaded) {
-                    const semesterAndWeek = getCurrentSemesterAndWeek();
-                    if (semesterAndWeek) {
-                        currentSemesterId = semesterAndWeek.semesterId;
-                        currentWeek = semesterAndWeek.week;
-                        if (semesterAndWeek.week !== 0) {
-                            currentSemesterAndWeek = semesterAndWeek;
-                        }
+            const loaded = await loadCourse('merge');
+            courseDataLoaded = !!loaded;
+            if (loaded) {
+                const semesterAndWeek = getCurrentSemesterAndWeek();
+                if (semesterAndWeek) {
+                    currentSemesterId = semesterAndWeek.semesterId;
+                    currentWeek = semesterAndWeek.week;
+                    if (semesterAndWeek.week !== 0) {
+                        currentSemesterAndWeek = semesterAndWeek;
                     }
-                } else {
-                    toast.warn(getI18n('schedule', 'loadCourseError'));
                 }
-                updateCurrentSemester(container);
-                updateContentView(container);
-                updateCurrentWeek(container);
-                renderSchedule(container);
-            });
+            } else {
+                toast.warn(getI18n('schedule', 'loadCourseError'));
+            }
+            updateCurrentSemester(container);
+            updateContentView(container);
+            updateCurrentWeek(container);
+            renderSchedule(container);
         }
     });
 }

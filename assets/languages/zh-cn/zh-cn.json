@@ -80,9 +80,12 @@
     "btnBack": "返回",
     "errorSchoolRequired": "请选择学校",
     "errorAccountRequired": "请输入账号",
+    "errorNotLoggedIn": "请先登录",
     "errorPasswordRequired": "请输入密码",
     "loginSuccess": "登录成功",
-    "toastLoginLoading": "登录中..."
+    "toastLoginLoading": "登录中...",
+    "toastRefreshLoading": "刷新中...",
+    "refreshSuccess": "刷新成功"
   },
   "welcome": {
     "title": "用户协议与隐私政策",
@@ -95,6 +98,7 @@
     "notLoggedIn": "未登录",
     "loginPrompt": "请先登录以访问教务系统",
     "goLogin": "去登录",
+    "reLogin": "重新登录",
     "functions": "功能",
     "function": "功能"
   },

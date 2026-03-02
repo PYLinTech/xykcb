@@ -2,21 +2,21 @@
     <div class="weui-panel weui-panel_access">
         <div class="weui-panel__hd" data-i18n="account">账号</div>
         <div class="weui-panel__bd">
-            <a href="javascript:;" id="js_not_logged_in" class="weui-media-box weui-media-box_appmsg">
+            <a href="javascript:;" id="js_account_info" class="weui-media-box weui-media-box_appmsg" style="cursor: pointer;">
                 <div class="weui-media-box__hd">
                     <span class="weui-media-box__thumb">
-                        <i class="ri-error-warning-line" style="font-size: 48px; color: #fa5151;"></i>
+                        <i id="js_account_icon" class="ri-error-warning-line" style="font-size: 48px; color: #fa5151;"></i>
                     </span>
                 </div>
                 <div class="weui-media-box__bd">
-                    <strong class="weui-media-box__title" data-i18n="notLoggedIn">未登录</strong>
-                    <p class="weui-media-box__desc" data-i18n="loginPrompt">请先登录以访问教务系统</p>
+                    <strong id="js_account_title" class="weui-media-box__title" data-i18n="notLoggedIn">未登录</strong>
+                    <p id="js_account_desc" class="weui-media-box__desc" data-i18n="loginPrompt">请先登录以访问教务系统</p>
                 </div>
             </a>
         </div>
         <div class="weui-panel__ft">
             <a href="javascript:;" id="js_go_login" class="weui-cell weui-cell_active weui-cell_access weui-cell_link">
-                <span class="weui-cell__bd" data-i18n="goLogin">去登录</span>
+                <span id="js_login_btn_text" class="weui-cell__bd" data-i18n="goLogin">去登录</span>
                 <span class="weui-cell__ft"></span>
             </a>
         </div>
