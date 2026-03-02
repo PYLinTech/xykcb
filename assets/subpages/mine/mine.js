@@ -1,6 +1,7 @@
 import { translatePage, getI18n } from '/assets/init/languages.js';
 import { loadLogin, getSavedUser } from '/assets/subpages/login/login.js';
 import { showOverlay, hideOverlay } from '/index.js';
+import { toast, hideToast } from '/assets/common/toast.js';
 
 // 加载功能列表
 async function loadFunctions(container) {
@@ -31,8 +32,10 @@ async function loadFunctions(container) {
                 <p class="weui-grid__label">${label}</p>
             `;
             item.addEventListener('click', async () => {
+                toast.loading(getI18n('common', 'toastLoading'));
                 const res = await fetch(func.url);
                 const html = await res.text();
+                hideToast();
                 showOverlay(null, html);
             });
             grid.appendChild(item);
