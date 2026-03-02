@@ -9,16 +9,13 @@ let courseData = null;
  * 生成课程特征hash
  */
 function genCourseHash(course) {
-    const key = `${course.id}|${course.name || ''}|${course.location || ''}|${course.teacher || ''}|${JSON.stringify(course.schedule || {})}|${JSON.stringify(course.weeks || [])}`;
+    const key = `${course.id}|${course.name || ''}|${course.location || ''}|${course.teacher || ''}`;
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
-        const char = key.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
+        hash = ((hash << 5) - hash) + key.charCodeAt(i);
+        hash |= 0;
     }
-    // 生成更长的hash
-    const hash2 = hash ^ (hash >>> 16);
-    return (Math.abs(hash).toString(16) + Math.abs(hash2).toString(16));
+    return Math.abs(hash).toString(36);
 }
 
 /**
