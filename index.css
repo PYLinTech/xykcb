@@ -24,11 +24,14 @@ body {
     overflow: auto;
     opacity: 0;
     visibility: hidden;
+    transform: translateY(100%);
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .overlay.show {
     opacity: 1;
     visibility: visible;
+    transform: translateY(0);
 }
 
 /* 通用点击遮罩效果 */
@@ -61,4 +64,11 @@ body {
         background-color: hsla(0, 0%, 100%, 0.2);
         background-color: var(--weui-BTN-ACTIVE-MASK);
     }
+}
+
+/* 覆盖浏览器自动填充背景色 */
+input:-webkit-autofill {
+    background-color: transparent !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: var(--weui-FG-0) !important;
 }
