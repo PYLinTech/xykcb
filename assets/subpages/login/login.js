@@ -47,13 +47,14 @@ export async function loadLogin() {
   await showOverlay('login', html);
 
   const savedUser = getSavedUser();
-  if (!currentSchool && savedUser?.school) {
-    currentSchool = savedUser.school;
+  const localStorageSchool = savedUser?.school;
+  if (!currentSchool && localStorageSchool) {
+    currentSchool = localStorageSchool;
   }
   if (currentSchool) {
     document.getElementById('js_school_text').textContent = getI18n('desc_key', currentSchool);
   }
-  if (savedUser) {
+  if (currentSchool === localStorageSchool && savedUser) {
     document.getElementById('js_username').value = savedUser.account || '';
     document.getElementById('js_password').value = savedUser.password || '';
   }
@@ -67,6 +68,21 @@ function bindEvents() {
   document.getElementById('js_login_btn').addEventListener('click', handleLogin);
   document.getElementById('js_username').addEventListener('input', handleInput);
   document.getElementById('js_password').addEventListener('input', handleInput);
+  document.getElementById('js_toggle_password').addEventListener('click', togglePasswordVisibility);
+}
+
+function togglePasswordVisibility() {
+  const passwordInput = document.getElementById('js_password');
+  const toggleIcon = document.getElementById('js_toggle_password');
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.classList.remove('ri-eye-off-line');
+    toggleIcon.classList.add('ri-eye-line');
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.classList.remove('ri-eye-line');
+    toggleIcon.classList.add('ri-eye-off-line');
+  }
 }
 
 async function handleSchoolClick() {
