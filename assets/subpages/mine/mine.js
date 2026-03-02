@@ -1,5 +1,48 @@
 import { translatePage, getI18n } from '/assets/init/languages.js';
 import { loadLogin, getSavedUser } from '/assets/subpages/login/login.js';
+import { showOverlay, hideOverlay } from '/index.js';
+
+// 加载功能列表
+async function loadFunctions(container) {
+    const savedUser = getSavedUser();
+    if (!savedUser?.school || savedUser.isLoggedIn === false) return;
+
+    try {
+        const response = await fetch(`https://api.pylin.cn/xykcb/get-support-function?school=${savedUser.school}`);
+        const result = await response.json();
+        if (!result.success || !result.data?.length) return;
+
+        // 按id排序
+        const functions = result.data.sort((a, b) => a.id.localeCompare(b.id));
+
+        const grid = container.querySelector('#js_functions_grid');
+        const panel = container.querySelector('#js_functions_panel');
+        const lang = localStorage.getItem('setting_language') || 'zh-cn';
+
+        for (const func of functions) {
+            const label = func[lang] || func['zh-cn'] || func.en;
+            const item = document.createElement('a');
+            item.className = 'weui-grid';
+            item.href = 'javascript:;';
+            item.innerHTML = `
+                <div class="weui-grid__icon">
+                    <i class="ri-function-line" style="font-size: 28px; color: var(--weui-FG-0);"></i>
+                </div>
+                <p class="weui-grid__label">${label}</p>
+            `;
+            item.addEventListener('click', async () => {
+                const res = await fetch(func.url);
+                const html = await res.text();
+                showOverlay(null, html);
+            });
+            grid.appendChild(item);
+        }
+
+        panel.style.display = 'block';
+    } catch (e) {
+        console.error('Failed to load functions:', e);
+    }
+}
 
 function updateLoginState(container) {
     const savedUser = getSavedUser();
@@ -41,9 +84,13 @@ export async function load(container) {
     // 初始化登录状态显示
     updateLoginState(container);
 
+    // 加载功能列表
+    await loadFunctions(container);
+
     // 监听登录成功事件
     window.addEventListener('login-success', () => {
         updateLoginState(container);
+        loadFunctions(container);
     });
 
     // 点击去登录/重新登录按钮
