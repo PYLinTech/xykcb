@@ -256,6 +256,36 @@ function renderDayViewCourses(container) {
     }
 }
 
+// 辅助函数：格式化课程时间为显示文本
+function formatCourseTimeText(course) {
+    const weekdayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const daySchedules = new Map();
+    for (const [day, sections] of Object.entries(course.schedule || {})) {
+        const dayNum = parseInt(day);
+        if (!daySchedules.has(dayNum)) daySchedules.set(dayNum, []);
+        daySchedules.get(dayNum).push(...sections);
+    }
+    const scheduleTexts = [];
+    for (const [day, sections] of daySchedules) {
+        const weekday = getI18n('schedule', `weekday${weekdayKeys[day - 1]}`);
+        sections.sort((a, b) => a - b);
+        let result = weekday;
+        let start = sections[0];
+        let prev = start;
+        for (let i = 1; i <= sections.length; i++) {
+            const current = sections[i];
+            if (current !== prev + 1) {
+                const sectionStr = start === prev ? start : `${start}-${prev}`;
+                result += result === weekday ? ` ${sectionStr}` : `,${sectionStr}`;
+                start = current;
+            }
+            prev = current;
+        }
+        scheduleTexts.push(`${result} ${getI18n('schedule', 'sectionSuffix')}`);
+    }
+    return scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
+}
+
 // 生成课程详情弹窗内容
 function generateCourseDetailContent(courses) {
     const lineStyle = 'display: flex; align-items: flex-start; line-height: 1.6; font-size: 16px; margin-top: 4px;';
@@ -268,6 +298,10 @@ function generateCourseDetailContent(courses) {
             <div style="${lineStyle}">
                 <i class="ri-map-pin-fill" style="${iconStyle}"></i>
                 <span style="${spanStyle}">${getI18n('schedule', 'location')}${course.location}</span>
+            </div>
+            <div style="${lineStyle}">
+                <i class="ri-time-fill" style="${iconStyle}"></i>
+                <span style="${spanStyle}">${getI18n('schedule', 'time')}${formatCourseTimeText(course)}</span>
             </div>
             <div style="${lineStyle}">
                 <i class="ri-user-fill" style="${iconStyle}"></i>
@@ -451,45 +485,16 @@ function renderSemesterView(container) {
         return;
     }
 
-    // 收集所有课程的节次和星期信息
-    const courseScheduleMap = new Map();
-
-    for (const course of courses) {
-        for (const [day, sections] of Object.entries(course.schedule)) {
-            const dayNum = parseInt(day);
-            for (const section of sections) {
-                const key = `${course.id}`;
-                if (!courseScheduleMap.has(key)) {
-                    courseScheduleMap.set(key, {
-                        course: course,
-                        schedules: []
-                    });
-                }
-                courseScheduleMap.get(key).schedules.push({ day: dayNum, section });
-            }
-        }
-    }
-
-    // 渲染每个课程的卡片
-    for (const [key, { course, schedules }] of courseScheduleMap) {
-        // 按星期和节次排序
-        schedules.sort((a, b) => {
-            if (a.day !== b.day) return a.day - b.day;
-            return a.section - b.section;
-        });
-
-        // 生成节次信息，合并连续的节次
+    // 辅助函数：格式化单个课程的时间
+    function formatCourseTime(course) {
         const weekdayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const scheduleTexts = [];
-        // 按星期分组
         const daySchedules = new Map();
-        for (const s of schedules) {
-            if (!daySchedules.has(s.day)) {
-                daySchedules.set(s.day, []);
-            }
-            daySchedules.get(s.day).push(s.section);
+        for (const [day, sections] of Object.entries(course.schedule || {})) {
+            const dayNum = parseInt(day);
+            if (!daySchedules.has(dayNum)) daySchedules.set(dayNum, []);
+            daySchedules.get(dayNum).push(...sections);
         }
-        // 合并连续节次
+        const scheduleTexts = [];
         for (const [day, sections] of daySchedules) {
             const weekday = getI18n('schedule', `weekday${weekdayKeys[day - 1]}`);
             sections.sort((a, b) => a - b);
@@ -507,8 +512,37 @@ function renderSemesterView(container) {
             }
             scheduleTexts.push(`${result} ${getI18n('schedule', 'sectionSuffix')}`);
         }
+        return scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
+    }
 
-        const timeStr = scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
+    // 按课程名称+教师分组
+    const courseGroupMap = new Map();
+    for (const course of courses) {
+        const key = `${course.name}|${course.teacher || ''}`;
+        if (!courseGroupMap.has(key)) {
+            courseGroupMap.set(key, []);
+        }
+        courseGroupMap.get(key).push(course);
+    }
+
+    // 渲染每个课程组
+    for (const [key, groupCourses] of courseGroupMap) {
+        const course = groupCourses[0];
+
+        // 收集地点、时间、周次，用 | 分割
+        const locations = [];
+        const times = [];
+        const weeks = [];
+
+        for (const c of groupCourses) {
+            locations.push(c.location || '-');
+            times.push(formatCourseTime(c));
+            weeks.push(formatWeeks(c.weeks) || '-');
+        }
+
+        const locationStr = locations.join(' | ');
+        const timeStr = times.join(' | ');
+        const weeksStr = weeks.join(' | ');
 
         const card = document.createElement('div');
         card.style.cssText = 'display: flex; min-height: 120px; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
@@ -523,12 +557,10 @@ function renderSemesterView(container) {
         const rightInfo = document.createElement('div');
         rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
 
-        const metaStyle = 'font-size: 13px; color: var(--weui-FG-2); margin-top: 8px; line-height: 1.5;';
-
         let metaHtml = '';
         // 地点
-        if (course.location) {
-            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-map-pin-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'location')}${course.location}</span></div>`;
+        if (locationStr) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-map-pin-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'location')}${locationStr}</span></div>`;
         }
         // 教师
         if (showTeacher() && course.teacher) {
@@ -539,9 +571,8 @@ function renderSemesterView(container) {
             metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-time-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'time')}${timeStr}</span></div>`;
         }
         // 周次
-        const weeksText = formatWeeks(course.weeks);
-        if (weeksText) {
-            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-calendar-check-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'week')}${formatWeeks(course.weeks)}</span></div>`;
+        if (weeksStr) {
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-calendar-check-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'week')}${weeksStr}</span></div>`;
         }
 
         rightInfo.innerHTML = metaHtml;
@@ -549,7 +580,7 @@ function renderSemesterView(container) {
         card.appendChild(leftName);
         card.appendChild(rightInfo);
         card.style.cursor = 'pointer';
-        card.addEventListener('click', () => showCourseDetailDialog([course]));
+        card.addEventListener('click', () => showCourseDetailDialog(groupCourses));
         courseList.appendChild(card);
     }
 }
