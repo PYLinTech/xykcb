@@ -7,27 +7,28 @@
         <div class="weui-form__control-area">
             <div class="weui-cells__group weui-cells__group_form">
                 <div class="weui-cells">
-                    <label id="js_school" class="weui-cell weui-cell_active weui-cell_access">
+                    <label id="js_school_cell" class="weui-cell weui-cell_active weui-cell_access">
                         <div class="weui-cell__hd"><span class="weui-label" data-i18n="labelSchool">学校</span></div>
                         <div class="weui-cell__bd weui-flex">
                             <span id="js_school_text" class="weui-input" data-i18n="placeholderSchool" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">请选择学校</span>
                         </div>
                         <div class="weui-cell__ft"></div>
                     </label>
-                    <label for="js_username" class="weui-cell weui-cell_active">
+                    <label id="js_username_cell" for="js_username" class="weui-cell weui-cell_active">
                         <div class="weui-cell__hd"><span class="weui-label" data-i18n="labelUsername">账号</span></div>
                         <div class="weui-cell__bd weui-flex">
-                            <input id="js_username" class="weui-input" type="text" data-i18n="placeholderUsername" placeholder="请输入教务账号" />
+                            <input id="js_username" class="weui-input" type="text" autocomplete="username" data-i18n="placeholderUsername" placeholder="请输入教务账号" />
                         </div>
                     </label>
-                    <label for="js_password" class="weui-cell weui-cell_active">
+                    <label id="js_password_cell" for="js_password" class="weui-cell weui-cell_active">
                         <div class="weui-cell__hd"><span class="weui-label" data-i18n="labelPassword">密码</span></div>
                         <div class="weui-cell__bd weui-flex">
-                            <input id="js_password" class="weui-input" type="password" data-i18n="placeholderPassword" placeholder="请输入密码" />
+                            <input id="js_password" class="weui-input" type="password" autocomplete="current-password" data-i18n="placeholderPassword" placeholder="请输入密码" />
                         </div>
                     </label>
                 </div>
             </div>
+            <div role="alert" class="weui-toptips weui-toptips_warn" id="js_login_tips" style="display: none;"></div>
         </div>
     </div>
     <div class="weui-form__ft">

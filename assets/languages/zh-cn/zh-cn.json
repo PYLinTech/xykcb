@@ -77,7 +77,12 @@
     "selectSchool": "选择学校",
     "toastLoadSchoolError": "获取学校列表失败",
     "btnLogin": "登录",
-    "btnBack": "返回"
+    "btnBack": "返回",
+    "errorSchoolRequired": "请选择学校",
+    "errorAccountRequired": "请输入账号",
+    "errorPasswordRequired": "请输入密码",
+    "loginSuccess": "登录成功",
+    "toastLoginLoading": "登录中..."
   },
   "welcome": {
     "title": "用户协议与隐私政策",
