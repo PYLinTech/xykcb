@@ -104,7 +104,7 @@ export async function load(container) {
             saveSetting(key, value);
             container.querySelector(`#js_cell_${id}_ft`).textContent = getLabel(key, value);
             if (key === 'language') await onLanguageChange(value);
-            if (key === 'font') await loadFont(value);
+            if (key === 'font') await loadFont(value, true);
             if (key === 'theme') await applyTheme(value);
             if (key === 'color') await applyColor(value);
           }

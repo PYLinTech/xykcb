@@ -83,11 +83,29 @@ xykcb/
   - `MiSansVF`（MiSans）
   - `LXGWWenKaiScreen`（霞鹜文楷）
   - `PingFangSanSheng`（平方三生体）
+  - `ChildFunSans`（游趣体）
+- **加载优化**：
+  - 页面首次加载不显示 loading toast
+  - 用户手动切换字体时显示 loading toast
+  - App 环境下不显示 loading toast（更流畅体验）
 - **API**：
-  - `loadFont(fontName)` - 加载指定字体
-  - `initFont()` - 从 localStorage 读取上次保存的字体设置并加载
+  - `loadFont(fontName, showToast?)` - 加载指定字体，showToast 控制是否显示加载提示
+  - `initFont()` - 从 localStorage 读取上次保存的字体设置并加载（无提示）
 
-#### 1.2 主题管理 (`themes.js`)
+#### 1.2 App UA 解析 (`init.js`)
+- **功能**：检测 WebView 环境并解析 App 信息
+- **UA 格式**：`xykcb_app/260303 (Platform/Android; Channel/Xiaomi;)`
+- **解析内容**：
+  - 版本号 (version)：如 `260303`
+  - 平台 (platform)：如 `Android`、`iOS`
+  - 渠道 (channel)：如 `Xiaomi`、`AppStore`
+- **存储键名**：
+  - `setting_is_app` - 是否为 App 环境 (`true`/`false`)
+  - `setting_app_version` - App 版本号
+  - `setting_app_platform` - App 平台
+  - `setting_app_channel` - App 渠道
+
+#### 1.3 主题管理 (`themes.js`)
 - **功能**：管理系统主题（浅色/深色/跟随系统）和品牌颜色
 - **主题模式**：`system`（跟随系统）、`light`（浅色）、`dark`（深色）
 - **品牌颜色**：7种颜色可选（苹果绿、活力黄、梦幻紫、冰晶蓝、薄纱粉、远山青、自由橙）
@@ -97,7 +115,7 @@ xykcb/
   - `initTheme()` - 初始化主题和颜色
   - `initColor()` - 初始化颜色
 
-#### 1.3 国际化 (`languages.js`)
+#### 1.4 国际化 (`languages.js`)
 - **功能**：支持多语言切换，动态加载语言包
 - **支持语言**：`zh-cn`（简体中文）、`en`（English）
 - **语言包结构**：JSON 格式，按页面模块划分（如 `index`、`schedule`、`settings` 等）
@@ -107,7 +125,7 @@ xykcb/
   - `getI18n(value, key)` - 获取翻译文本
   - `onLanguageChange(value)` - 语言切换回调
 
-#### 1.4 欢迎页 (`/assets/subpages/welcome/welcome.js`)
+#### 1.5 欢迎页 (`/assets/subpages/welcome/welcome.js`)
 - **功能**：首次使用时显示欢迎页/用户协议，支持版本控制和语言选择
 - **流程**：检查 localStorage 中的版本号，首次访问或版本更新时显示欢迎页
 
@@ -216,10 +234,11 @@ xykcb/
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  2. 执行 init.js（初始化入口模块）                            │
-│     ├─ initFont()      → 加载保存的字体                     │
-│     ├─ initTheme()     → 应用保存的主题和颜色               │
-│     ├─ initLanguage()  → 加载保存的语言包                   │
-│     └─ initWelcome()   → 检查并显示欢迎页                    │
+│     ├─ UA 解析       → 检测 App 环境并解析版本/平台/渠道    │
+│     ├─ initFont()    → 加载保存的字体（按需显示 toast）     │
+│     ├─ initTheme()   → 应用保存的主题和颜色                 │
+│     ├─ initLanguage()→ 加载保存的语言包                     │
+│     └─ initWelcome() → 检查并显示欢迎页                      │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -272,6 +291,163 @@ switchPage(pageName)
     ▼
     新页面渲染完成
 ```
+
+### 各页面详细加载流程
+
+#### 课程页面 (schedule)
+
+```
+schedule.js → load(container)
+    │
+    ├─ fetch(schedule.html) 获取HTML
+    │
+    ├─ translatePage('schedule', container) 翻译页面
+    │
+    ├─ 检查登录状态 (getSavedUser)
+    │   ├─ 已登录 → loadCourse('merge') 加载课程数据
+    │   │   └─ 从 API 获取或从 localStorage 读取
+    │   └─ 未登录 → 显示登录提示
+    │
+    ├─ 获取当前学期和周次 (getCurrentSemesterAndWeek)
+    │
+    ├─ updateCurrentSemester() 更新学期显示
+    ├─ updateContentView() 更新视图显示 (日/周/学期)
+    ├─ updateCurrentWeek() 更新周次显示
+    │
+    ├─ renderSchedule(container) 渲染课程
+    │   ├─ 日视图 → renderDayView()
+    │   ├─ 周视图 → renderWeekView()
+    │   └─ 学期视图 → renderSemesterView()
+    │
+    └─ 绑定点击事件 (事件委托)
+        ├─ 学期选择器 → HalfRadioDialog
+        ├─ 周次选择器 → HalfRadioDialog
+        ├─ 视图选择器 → HalfRadioDialog
+        └─ 刷新按钮 → refreshCourseData()
+```
+
+#### 设置页面 (settings)
+
+```
+settings.js → load(container)
+    │
+    ├─ fetch(settings.html) 获取HTML
+    │
+    ├─ translatePage('settings', container) 翻译页面
+    │
+    ├─ 初始化设置项显示
+    │   ├─ 语言设置 (language)
+    │   ├─ 主题设置 (theme: system/light/dark)
+    │   ├─ 字体设置 (font)
+    │   ├─ 颜色设置 (color)
+    │   ├─ 周末显示 (showWeekend)
+    │   ├─ 教师显示 (showTeacher)
+    │   └─ 边框显示 (showBorder)
+    │
+    └─ 绑定点击事件
+        └─ 点击设置项 → HalfRadioDialog.show() 或 开关切换
+```
+
+#### 我的页面 (mine)
+
+```
+mine.js → load(container)
+    │
+    ├─ fetch(mine.html) 获取HTML
+    │
+    ├─ translatePage('mine', container) 翻译页面
+    │
+    ├─ updateLoginState() 更新登录状态显示
+    │   ├─ 已登录 → 显示账号和学校
+    │   └─ 未登录 → 显示"未登录"提示
+    │
+    ├─ loadFunctions(container) 加载功能列表
+    │   └─ fetch(API) → 获取学校支持的功能
+    │
+    └─ 绑定点击事件
+        └─ 去登录/重新登录按钮 → loadLogin()
+```
+
+### Overlay 弹层加载机制
+
+```
+showOverlay(pageName, html)
+    │
+    ├─ overlay.innerHTML = html
+    │
+    ├─ 查找并加载外部脚本
+    │   └─ script[src] → 创建新 script 标签添加到 head
+    │
+    ├─ 如果有 pageName
+    │   └─ translatePage(pageName, overlay) 翻译页面
+    │
+    └─ overlay.classList.add('show') 显示弹层
+
+hideOverlay()
+    └─ overlay.classList.remove('show') 隐藏弹层
+```
+
+### 登录流程
+
+```
+loadLogin() 加载登录页
+    │
+    ├─ fetch(login.html) 获取HTML
+    │
+    ├─ showOverlay('login', html) 显示登录弹层
+    │
+    ├─ 检查已保存用户 → 填充账号密码
+    │
+    └─ 绑定表单事件
+
+用户点击登录 → handleLogin()
+    │
+    ├─ 验证输入 (学校/账号/密码)
+    │
+    ├─ fetchCourseData(school, account, password)
+    │   └─ POST → API: https://api.pylin.cn/xykcb/get-course-data
+    │
+    ├─ saveCourseData(result) → localStorage
+    ├─ saveUser() → localStorage
+    │
+    ├─ hideOverlay() 关闭登录页
+    │
+    └─ window.dispatchEvent('login-success')
+        └─ 各页面监听并刷新数据
+```
+
+### 事件通信机制
+
+```javascript
+// 登录成功时派发事件
+window.dispatchEvent(new CustomEvent('login-success'));
+
+// 页面监听事件刷新数据
+window.addEventListener('login-success', async () => {
+    const loaded = await loadCourse('merge');
+    // 更新页面...
+});
+```
+
+### 数据存储
+
+| 键名 | 用途 |
+|------|------|
+| `login_user` | 当前登录用户信息 |
+| `course_data` | 课程数据缓存 |
+| `setting_language` | 语言设置 |
+| `setting_theme` | 主题设置 |
+| `setting_font` | 字体设置 |
+| `setting_color` | 颜色设置 |
+| `setting_showWeekend` | 显示周末 |
+| `setting_showTeacher` | 显示教师 |
+| `setting_showBorder` | 显示边框 |
+| `localWelcomeVersion` | 欢迎页版本 |
+| `setting_is_app` | 是否为 App 环境 |
+| `setting_app_version` | App 版本号 |
+| `setting_app_platform` | App 平台 (Android/iOS) |
+| `setting_app_channel` | App 渠道 |
+| `setting_user_agent` | 浏览器 User-Agent |
 
 ### 设置变更流程
 
