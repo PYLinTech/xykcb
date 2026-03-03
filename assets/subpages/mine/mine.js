@@ -1,4 +1,4 @@
-import { translatePage, getI18n } from '/assets/init/languages.js';
+import { translatePage, getI18n, getCurrentLang } from '/assets/init/languages.js';
 import { loadLogin, getSavedUser } from '/assets/subpages/login/login.js';
 import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
@@ -18,7 +18,7 @@ async function loadFunctions(container) {
 
         const grid = container.querySelector('#js_functions_grid');
         const panel = container.querySelector('#js_functions_panel');
-        const lang = localStorage.getItem('setting_language') || 'zh-cn';
+        const lang = getCurrentLang();
 
         // 先清空现有功能
         grid.innerHTML = '';

@@ -93,6 +93,11 @@ export function getI18n(value, key) {
   return langData?.[value]?.[key] ?? '';
 }
 
+// 获取当前语言
+export function getCurrentLang() {
+  return localStorage.getItem('setting_language') || 'zh-cn';
+}
+
 // 语言切换回调
 export async function onLanguageChange(value) {
   initPromise = null;

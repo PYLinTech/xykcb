@@ -1,5 +1,6 @@
 import { showOverlay, hideOverlay } from '/index.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
+import { getCurrentLang } from '/assets/init/languages.js';
 
 const welcomeVersion = 260209;
 
@@ -34,7 +35,7 @@ function disagree() {
 }
 
 function showLanguageSelector() {
-  const currentLang = localStorage.getItem('setting_language') || 'zh-cn';
+  const currentLang = getCurrentLang();
   HalfRadioDialog.show({
     title: '选择语言',
     options: [
