@@ -35,6 +35,19 @@ async function switchPage(pageName) {
 export async function showOverlay(pageName, html) {
   const overlay = document.getElementById('overlay');
   overlay.innerHTML = html;
+
+  // 查找并加载外部脚本
+  const scripts = overlay.querySelectorAll('script[src]');
+  for (const script of scripts) {
+    await new Promise((resolve, reject) => {
+      const newScript = document.createElement('script');
+      newScript.src = script.src;
+      newScript.onload = resolve;
+      newScript.onerror = reject;
+      document.head.appendChild(newScript);
+    });
+  }
+
   if (pageName) {
     const { translatePage } = await import('/assets/init/languages.js');
     await translatePage(pageName, overlay);
