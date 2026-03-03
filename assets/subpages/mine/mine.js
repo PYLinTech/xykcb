@@ -20,6 +20,9 @@ async function loadFunctions(container) {
         const panel = container.querySelector('#js_functions_panel');
         const lang = localStorage.getItem('setting_language') || 'zh-cn';
 
+        // 先清空现有功能
+        grid.innerHTML = '';
+
         for (const func of functions) {
             const label = func[lang] || func['zh-cn'] || func.en;
             const item = document.createElement('a');

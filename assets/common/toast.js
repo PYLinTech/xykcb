@@ -101,11 +101,13 @@ export function showToast(type, message, duration = TOAST_CONFIG.defaultDuration
 export function hideToast() {
     if (!toastElement) return;
 
-    toastElement.style.opacity = '0';
+    const oldElement = toastElement;
+    toastElement = null;
+
+    oldElement.style.opacity = '0';
     setTimeout(() => {
-        if (toastElement) {
-            toastElement.remove();
-            toastElement = null;
+        if (oldElement && oldElement.parentNode) {
+            oldElement.remove();
         }
     }, TOAST_CONFIG.fadeDuration);
 

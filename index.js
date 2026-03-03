@@ -36,16 +36,17 @@ export async function showOverlay(pageName, html) {
   const overlay = document.getElementById('overlay');
   overlay.innerHTML = html;
 
-  // 查找并加载外部脚本
-  const scripts = overlay.querySelectorAll('script[src]');
-  for (const script of scripts) {
-    await new Promise((resolve, reject) => {
+  // 执行内联脚本
+  for (const script of overlay.querySelectorAll('script')) {
+    if (script.type === 'module') {
       const newScript = document.createElement('script');
-      newScript.src = script.src;
-      newScript.onload = resolve;
-      newScript.onerror = reject;
+      newScript.type = 'module';
+      newScript.textContent = script.textContent;
       document.head.appendChild(newScript);
-    });
+      document.head.removeChild(newScript);
+    } else if (script.textContent) {
+      new Function(script.textContent)();
+    }
   }
 
   if (pageName) {
