@@ -360,7 +360,14 @@ function renderWeekView(container) {
 
     // 获取学期配置
     const semesterConfig = getSemesterConfig(currentSemesterId);
-    const mergeableSections = semesterConfig?.mergeableSections || [];
+    let mergeableSections = semesterConfig?.mergeableSections || [];
+
+    // 按起始节次排序
+    mergeableSections = [...mergeableSections].sort((a, b) => {
+        const startA = parseInt(a.split('-')[0]);
+        const startB = parseInt(b.split('-')[0]);
+        return startA - startB;
+    });
 
     // 解析大节配置
     const largeSectionMap = new Map(); // 大节索引 -> { name: "1-2", sections: [1,2], startTime, endTime }
