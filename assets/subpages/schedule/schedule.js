@@ -26,6 +26,7 @@ const getSetting = key => localStorage.getItem(`setting_${key}`) ?? 'true';
 const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
+const showLargeSection = () => getSetting('showLargeSection') === 'true';
 
 // 根据课程名称生成颜色索引
 const getCourseColorIndex = (course) => {
@@ -356,6 +357,35 @@ function renderWeekView(container) {
         container.querySelector('#js_weekview_login_btn').addEventListener('click', () => loadLogin());
         return;
     }
+
+    // 获取学期配置
+    const semesterConfig = getSemesterConfig(currentSemesterId);
+    const mergeableSections = semesterConfig?.mergeableSections || [];
+
+    // 解析大节配置
+    const largeSectionMap = new Map(); // 大节索引 -> { name: "1-2", sections: [1,2], startTime, endTime }
+    for (let i = 0; i < mergeableSections.length; i++) {
+        const parts = mergeableSections[i].split('-');
+        const startSection = parseInt(parts[0]);
+        const endSection = parseInt(parts[1]);
+        const sections = [];
+        for (let s = startSection; s <= endSection; s++) {
+            sections.push(s);
+        }
+        // 获取起始和结束时间
+        const startSlot = timeSlots[startSection - 1];
+        const endSlot = timeSlots[endSection - 1];
+        largeSectionMap.set(i, {
+            name: mergeableSections[i],
+            sections: sections,
+            startTime: startSlot?.start || '',
+            endTime: endSlot?.end || ''
+        });
+    }
+
+    const useLargeSection = showLargeSection() && largeSectionMap.size > 0;
+    const rowCount = useLargeSection ? largeSectionMap.size : dailySectionCount;
+
     container.style.display = 'grid';
     container.style.height = '100%';
     container.style.width = '100%';
@@ -364,7 +394,7 @@ function renderWeekView(container) {
     const displayWeekend = showWeekend();
     const columnCount = displayWeekend ? 8 : 6;
     container.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`;
-    container.style.gridTemplateRows = `46px repeat(${dailySectionCount}, minmax(80px, 1fr))`;
+    container.style.gridTemplateRows = `46px repeat(${rowCount}, minmax(80px, 1fr))`;
 
     // 根据设置确定边框
     const displayBorder = showBorder();
@@ -384,7 +414,7 @@ function renderWeekView(container) {
     const cells = [];
 
     // 绘制所有单元格
-    const totalCells = columnCount * (dailySectionCount + 1);
+    const totalCells = columnCount * (rowCount + 1);
     for (let i = 0; i < totalCells; i++) {
         const cell = document.createElement('div');
         cell.style.display = 'flex';
@@ -428,18 +458,28 @@ function renderWeekView(container) {
                 }
             }
             cell.style.fontSize = '14px';
-        } else if (col === 0 && row > 0 && row <= dailySectionCount) {
-            const slot = timeSlots[row - 1];
-            if (slot?.section && slot?.start && slot?.end) {
-                cell.innerHTML = `<div style="font-size: 16px;">${slot.section}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${slot.start}-<wbr>${slot.end}</div>`;
+        } else if (col === 0 && row > 0 && row <= rowCount) {
+            if (useLargeSection) {
+                // 大节显示
+                const largeSection = largeSectionMap.get(row - 1);
+                if (largeSection) {
+                    cell.innerHTML = `<div style="font-size: 16px;">${largeSection.name}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${largeSection.startTime}-${largeSection.endTime}</div>`;
+                }
             } else {
-                cell.textContent = row;
+                // 小节显示
+                const slot = timeSlots[row - 1];
+                if (slot?.section && slot?.start && slot?.end) {
+                    cell.innerHTML = `<div style="font-size: 16px;">${slot.section}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${slot.start}-<wbr>${slot.end}</div>`;
+                } else {
+                    cell.textContent = row;
+                }
             }
             cell.style.display = 'flex';
             cell.style.flexDirection = 'column';
             cell.style.alignItems = 'center';
             cell.style.justifyContent = 'center';
             cell.style.textAlign = 'center';
+            cell.style.padding = '4px';
         }
 
         cells.push(cell);
@@ -455,14 +495,55 @@ function renderWeekView(container) {
             // 如果不显示周末且是周六日，跳过
             if (!displayWeekend && dayNum >= 6) continue;
             const col = dayNum;
-            for (const section of sections) {
-                const row = section; // 第几节 (1-n)
-                const cellIndex = row * columnCount + col;
-                if (cellIndex >= 0 && cellIndex < cells.length) {
-                    if (!cellCoursesMap.has(cellIndex)) {
-                        cellCoursesMap.set(cellIndex, []);
+
+            if (useLargeSection) {
+                // 大节模式：将课程放入对应的大节
+                // 首先找到课程所有节次对应的大节
+                const largeSectionCourses = new Map(); // 大节索引 -> 课程列表
+
+                for (const section of sections) {
+                    // 查找该小节属于哪个大节
+                    for (const [largeIdx, largeSection] of largeSectionMap) {
+                        if (largeSection.sections.includes(section)) {
+                            if (!largeSectionCourses.has(largeIdx)) {
+                                largeSectionCourses.set(largeIdx, []);
+                            }
+                            // 避免重复添加同一课程
+                            if (!largeSectionCourses.get(largeIdx).includes(course)) {
+                                largeSectionCourses.get(largeIdx).push(course);
+                            }
+                            break;
+                        }
                     }
-                    cellCoursesMap.get(cellIndex).push(course);
+                }
+
+                // 将课程放入对应大节
+                for (const [largeIdx, courseList] of largeSectionCourses) {
+                    const row = largeIdx + 1; // 大节索引从1开始（0是表头）
+                    const cellIndex = row * columnCount + col;
+                    if (cellIndex >= 0 && cellIndex < cells.length) {
+                        if (!cellCoursesMap.has(cellIndex)) {
+                            cellCoursesMap.set(cellIndex, []);
+                        }
+                        // 合并课程列表
+                        for (const c of courseList) {
+                            if (!cellCoursesMap.get(cellIndex).includes(c)) {
+                                cellCoursesMap.get(cellIndex).push(c);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 小节模式
+                for (const section of sections) {
+                    const row = section; // 第几节 (1-n)
+                    const cellIndex = row * columnCount + col;
+                    if (cellIndex >= 0 && cellIndex < cells.length) {
+                        if (!cellCoursesMap.has(cellIndex)) {
+                            cellCoursesMap.set(cellIndex, []);
+                        }
+                        cellCoursesMap.get(cellIndex).push(course);
+                    }
                 }
             }
         }

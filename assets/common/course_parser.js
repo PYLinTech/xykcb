@@ -210,7 +210,8 @@ function getSemesterConfig(semesterId) {
     return {
         totalWeeks: semester.totalWeeks,
         timeSlots: semester.timeSlots,
-        dailySectionCount: semester.timeSlots.length
+        dailySectionCount: semester.timeSlots.length,
+        mergeableSections: semester.mergeableSections || []
     };
 }
 

@@ -10,7 +10,8 @@ const defaults = {
   color: 'appleGreen',
   showWeekend: 'true',
   showTeacher: 'true',
-  showBorder: 'true'
+  showBorder: 'true',
+  showLargeSection: 'true'
 };
 
 const i18nKeys = {
@@ -27,7 +28,7 @@ const optionValues = {
   color: ['appleGreen', 'vividYellow', 'dreamyPurple', 'iceBlue', 'sheerPink', 'distantCyan', 'freedomOrange']
 };
 
-const switchConfig = ['showWeekend', 'showTeacher', 'showBorder'];
+const switchConfig = ['showWeekend', 'showTeacher', 'showBorder', 'showLargeSection'];
 
 function getConfig() {
   return {
