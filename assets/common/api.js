@@ -1,7 +1,7 @@
 // API 地址统一管理
 
 const BASE_URL = 'https://api.pylin.cn/xykcb';
-const CDN_URL = 'https://cdn.pylin.cn/xykcb';
+const CDN_URL = '/libraries';
 
 export const API = {
   // 获取支持的学校列表
