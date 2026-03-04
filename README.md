@@ -26,7 +26,8 @@ xykcb/
 ├── index.css            # 全局样式
 ├── assets/
 │   ├── common/
-│   │   └── half_radio_dialog.js    # 半屏单选弹窗组件
+│   │   ├── api.js                  # API 地址统一管理
+│   │   ├── half_radio_dialog.js    # 半屏单选弹窗组件
 │   ├── init/
 │   │   ├── init.js                 # 初始化入口
 │   │   ├── fonts.js                # 字体加载（钉钉进步体/MiSans/霞鹜文楷）
@@ -78,6 +79,7 @@ xykcb/
 
 #### 1.1 字体加载 (`fonts.js`)
 - **功能**：动态加载自定义字体，支持本地字体文件异步加载
+- **字体来源**：CDN (`https://cdn.pylin.cn/xykcb/fonts/`)
 - **支持的字体**：
   - `DingTalk-JinBuTi`（钉钉进步体）
   - `MiSansVF`（MiSans）
@@ -85,11 +87,14 @@ xykcb/
   - `PingFangSanSheng`（平方三生体）
   - `ChildFunSans`（游趣体）
 - **加载优化**：
+  - IndexedDB 本地缓存，重复加载直接使用缓存
+  - fetch 请求带 30 秒超时，超时自动中断
+  - 设置中切换字体时强制刷新缓存
   - 页面首次加载不显示 loading toast
   - 用户手动切换字体时显示 loading toast
   - App 环境下不显示 loading toast（更流畅体验）
 - **API**：
-  - `loadFont(fontName, showToast?)` - 加载指定字体，showToast 控制是否显示加载提示
+  - `loadFont(fontName, showToast?)` - 加载指定字体，showToast=true 时强制刷新缓存
   - `initFont()` - 从 localStorage 读取上次保存的字体设置并加载（无提示）
 
 #### 1.2 App UA 解析 (`init.js`)
@@ -131,7 +136,18 @@ xykcb/
 
 ### 2. 通用组件 (`/assets/common/`)
 
-#### 2.1 半屏单选弹窗 (`half_radio_dialog.js`)
+#### 2.1 API 管理 (`api.js`)
+- **功能**：统一管理 API 地址和请求封装
+- **API 地址**：
+  - `getSupportSchool` - 获取支持的学校列表
+  - `getCourseData` - 获取课程数据
+  - `getSupportFunction(school)` - 获取学校支持的功能列表
+  - `fontUrl(fileName)` - 字体 CDN 地址
+- **请求封装**：
+  - `fetchWithTimeout(url, options)` - 带超时的 fetch（30秒），超时自动中断请求
+- **IndexedDB 缓存**：字体文件缓存到本地，提升加载速度
+
+#### 2.2 半屏单选弹窗 (`half_radio_dialog.js`)
 - **功能**：从屏幕底部滑出的单选对话框
 - **特性**：
   - 使用 WeUI 半屏对话框样式
@@ -140,7 +156,7 @@ xykcb/
   - 支持默认选中项
 - **API**：`HalfRadioDialog.show({ title, options, selected, onChange })`
 
-#### 2.2 标准对话框 (`dialog.js`)
+#### 2.3 标准对话框 (`dialog.js`)
 - **功能**：居中显示的模态对话框
 - **样式变体**：
   - `style: '1'` - 有标题，按钮纵向排列
@@ -148,7 +164,7 @@ xykcb/
   - `style: '3'` - 有标题，按钮横向排列
 - **API**：`Dialog.show({ style, title, content, buttons, allowMaskClose, onClose })`
 
-#### 2.3 Toast 提示 (`toast.js`)
+#### 2.4 Toast 提示 (`toast.js`)
 - **功能**：轻量级反馈提示
 - **类型**：`success`（成功）、`warn`（警告）、`loading`（加载中）、`text`（纯文本）
 - **特性**：自动消失（除 loading），支持自定义时长
@@ -156,7 +172,7 @@ xykcb/
   - `showToast(type, message, duration)`
   - `toast.success(msg, duration)` / `toast.warn(msg, duration)` / `toast.loading(msg)` / `toast.text(msg, duration)`
 
-#### 2.4 日期选择器 (`calendar_picker.js`)
+#### 2.5 日期选择器 (`calendar_picker.js`)
 - **功能**：从底部滑出的日历选择器
 - **特性**：
   - 月份切换（支持跨年）
@@ -165,7 +181,7 @@ xykcb/
   - 支持禁用遮罩关闭
 - **API**：`CalendarPicker.show({ initialDate, onChange, onClose, allowMaskClose })`
 
-#### 2.5 课程数据解析器 (`course_parser.js`)
+#### 2.6 课程数据解析器 (`course_parser.js`)
 - **功能**：解析和管理课程数据
 - **加载模式**：`local`（本地存储）、`online`（在线加载）、`merge`（合并加载）
 - **API**：

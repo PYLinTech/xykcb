@@ -2,6 +2,7 @@ import { translatePage, getI18n, getCurrentLang } from '/assets/init/languages.j
 import { loadLogin, getSavedUser } from '/assets/subpages/login/login.js';
 import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
+import { API, fetchWithTimeout } from '/assets/common/api.js';
 
 // 加载功能列表
 async function loadFunctions(container) {
@@ -9,7 +10,7 @@ async function loadFunctions(container) {
     if (!savedUser?.school || savedUser.isLoggedIn === false) return;
 
     try {
-        const response = await fetch(`https://api.pylin.cn/xykcb/get-support-function?school=${savedUser.school}`);
+        const response = await fetchWithTimeout(API.getSupportFunction(savedUser.school));
         const result = await response.json();
         if (!result.success || !result.data?.length) return;
 

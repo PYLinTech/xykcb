@@ -2,12 +2,10 @@ import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { getI18n } from '/assets/init/languages.js';
+import { API, fetchWithTimeout } from '/assets/common/api.js';
 
-const COURSE_API = 'https://api.pylin.cn/xykcb/get-course-data';
-const SCHOOL_API = 'https://api.pylin.cn/xykcb/get-support-school';
 const LOGIN_USER_KEY = 'login_user';
 const COURSE_DATA_KEY = 'course_data';
-const TIMEOUT_MS = 30000;
 
 let currentSchool = null;
 
@@ -88,7 +86,7 @@ function togglePasswordVisibility() {
 async function handleSchoolClick() {
   toast.loading(getI18n('common', 'toastLoading'));
 
-  const res = await fetch(SCHOOL_API);
+  const res = await fetchWithTimeout(API.getSupportSchool);
   const data = await res.json();
 
   hideToast();
@@ -156,13 +154,7 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
   toast.loading(getI18n('login', loadingKey));
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    const res = await fetch(`${COURSE_API}?school=${school}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`, {
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
+    const res = await fetchWithTimeout(`${API.getCourseData}?school=${school}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`);
 
     const result = await res.json();
 
