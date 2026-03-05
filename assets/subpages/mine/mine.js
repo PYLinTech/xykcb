@@ -94,11 +94,11 @@ export async function load(container) {
     // 加载功能列表
     await loadFunctions(container);
 
-    // 监听登录成功事件
+    // 监听登录成功事件（使用 once 防止重复绑定）
     window.addEventListener('login-success', () => {
         updateLoginState(container);
         loadFunctions(container);
-    });
+    }, { once: true });
 
     // 点击去登录/重新登录按钮
     container.querySelector('#js_go_login').addEventListener('click', loadLogin);

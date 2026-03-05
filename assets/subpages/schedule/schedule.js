@@ -20,6 +20,11 @@ let dailySectionCount = 0;
 let timeSlots = [];
 let currentSemesterAndWeek = null;
 let courseDataLoaded = false;
+let isRefreshing = false; // 防止重复刷新
+
+// 周次选项缓存，避免每次打开弹窗都重新创建数组
+let weekOptionsCache = null;
+let weekOptionsCacheKey = null;
 
 // 获取设置
 const getSetting = key => localStorage.getItem(`setting_${key}`) ?? 'true';
@@ -226,6 +231,8 @@ function renderDayViewCourses(container) {
         // 按节次排序
         const sortedSections = Array.from(sectionCoursesMap.keys()).sort((a, b) => a - b);
 
+        // 使用 DocumentFragment 减少 DOM 操作
+        const fragment = document.createDocumentFragment();
         for (const section of sortedSections) {
             const sectionCourses = sectionCoursesMap.get(section);
             for (const course of sectionCourses) {
@@ -260,9 +267,10 @@ function renderDayViewCourses(container) {
                 card.appendChild(rightInfo);
                 card.style.cursor = 'pointer';
                 card.addEventListener('click', () => showCourseDetailDialog([course]));
-                courseList.appendChild(card);
+                fragment.appendChild(card);
             }
         }
+        courseList.appendChild(fragment);
     }
 }
 
@@ -419,6 +427,8 @@ function renderWeekView(container) {
 
     // 存储所有单元格的引用
     const cells = [];
+    // 使用 DocumentFragment 减少 DOM 操作
+    const fragment = document.createDocumentFragment();
 
     // 绘制所有单元格
     const totalCells = columnCount * (rowCount + 1);
@@ -490,8 +500,11 @@ function renderWeekView(container) {
         }
 
         cells.push(cell);
-        container.appendChild(cell);
+        fragment.appendChild(cell);
     }
+
+    // 一次性将所有单元格添加到容器
+    container.appendChild(fragment);
 
     // 按位置分组收集课程
     const cellCoursesMap = new Map();
@@ -644,7 +657,8 @@ function renderSemesterView(container) {
         courseGroupMap.get(key).push(course);
     }
 
-    // 渲染每个课程组
+    // 渲染每个课程组 - 使用 DocumentFragment 减少 DOM 操作
+    const fragment = document.createDocumentFragment();
     for (const [key, groupCourses] of courseGroupMap) {
         const course = groupCourses[0];
 
@@ -700,8 +714,9 @@ function renderSemesterView(container) {
         card.appendChild(rightInfo);
         card.style.cursor = 'pointer';
         card.addEventListener('click', () => showCourseDetailDialog(groupCourses));
-        courseList.appendChild(card);
+        fragment.appendChild(card);
     }
+    courseList.appendChild(fragment);
 }
 
 // 课程页面起始加载方法
@@ -742,8 +757,8 @@ export async function load(container) {
     //根据选择加载对应视图的课程
     renderSchedule(container);
 
-    // 监听登录成功事件，刷新课程数据
-    window.addEventListener('login-success', async () => {
+    // 监听登录成功事件，刷新课程数据（使用 once 防止重复绑定）
+    const handleLoginSuccess = async () => {
         const loaded = await loadCourse('merge');
         courseDataLoaded = !!loaded;
         if (loaded) {
@@ -760,14 +775,16 @@ export async function load(container) {
         updateContentView(container);
         updateCurrentWeek(container);
         renderSchedule(container);
-    });
+    };
+
+    // 使用 once: true 确保只执行一次
+    window.addEventListener('login-success', handleLoginSuccess, { once: true });
 
     // 使用事件委托确保点击事件有效
     container.addEventListener('click', async (e) => {
         //学期选择器
         const currentSemester = e.target.closest('#js_current_semester');
         if (currentSemester) {
-            //检查登录状态
             const savedUser = getSavedUser();
             if (!savedUser || savedUser.isLoggedIn === false) {
                 toast.warn(getI18n('login', 'errorNotLoggedIn'));
@@ -782,9 +799,11 @@ export async function load(container) {
                     options: options,
                     selected: currentSemesterId,
                     onChange: (value) => {
-                        //选中值设置为当前学期，并将当前周次设置为0以默认显示全部周次，再调用视图渲染方法
                         currentSemesterId = value;
                         currentWeek = 0;
+                        // 切换学期后清理周次选项缓存
+                        weekOptionsCache = null;
+                        weekOptionsCacheKey = null;
                         updateCurrentSemester(container);
                         updateCurrentWeek(container);
                         renderSchedule(container);
@@ -799,7 +818,6 @@ export async function load(container) {
         //周次选择器
         const currentWeekBtn = e.target.closest('#js_current_week');
         if (currentWeekBtn) {
-            //检查登录状态
             const savedUser = getSavedUser();
             if (!savedUser || savedUser.isLoggedIn === false) {
                 toast.warn(getI18n('login', 'errorNotLoggedIn'));
@@ -809,24 +827,33 @@ export async function load(container) {
             const semesterConfig = getSemesterConfig(currentSemesterId);
             if (semesterConfig) {
                 const totalWeeks = semesterConfig.totalWeeks;
-                const options = [
-                    { value: 0, label: getI18n('schedule', 'allWeek') },
-                    ...Array.from({ length: totalWeeks }, (_, i) => {
-                        const weekNum = i + 1;
-                        const isCurrentWeek = currentSemesterAndWeek?.semesterId === currentSemesterId && currentSemesterAndWeek?.week === weekNum;
-                        return {
-                            value: weekNum,
-                            label: `${getI18n('schedule', 'weekN').replace('{n}', weekNum)}${isCurrentWeek ? getI18n('schedule', 'currentWeekSuffix') : ''}`
-                        };
-                    })
-                ];
+
+                // 使用缓存避免每次都重新创建数组
+                const cacheKey = `${currentSemesterId}-${currentSemesterAndWeek?.semesterId}-${currentSemesterAndWeek?.week}`;
+                if (weekOptionsCacheKey !== cacheKey) {
+                    weekOptionsCacheKey = cacheKey;
+                    weekOptionsCache = [
+                        { value: 0, label: getI18n('schedule', 'allWeek') },
+                        ...Array.from({ length: totalWeeks }, (_, i) => {
+                            const weekNum = i + 1;
+                            const isCurrentWeek = currentSemesterAndWeek?.semesterId === currentSemesterId && currentSemesterAndWeek?.week === weekNum;
+                            return {
+                                value: weekNum,
+                                label: `${getI18n('schedule', 'weekN').replace('{n}', weekNum)}${isCurrentWeek ? getI18n('schedule', 'currentWeekSuffix') : ''}`
+                            };
+                        })
+                    ];
+                }
+
                 HalfRadioDialog.show({
                     title: getI18n('schedule', 'selectWeek'),
-                    options: options,
+                    options: weekOptionsCache,
                     selected: currentWeek,
                     onChange: (value) => {
-                        //选中值设置为当前周次，调用渲染方法重新加载视图
                         currentWeek = Number(value);
+                        // 切换周次后需要更新缓存
+                        weekOptionsCacheKey = null;
+                        weekOptionsCache = null;
                         updateCurrentWeek(container);
                         renderSchedule(container);
                     }
@@ -849,7 +876,6 @@ export async function load(container) {
                 options: options,
                 selected: scheduleView,
                 onChange: (value) => {
-                    //选中值设置为当前视图，调用update Container刷新工具栏，并重新渲染视图
                     scheduleView = value;
                     updateContentView(container);
                     updateCurrentWeek(container);
@@ -862,10 +888,15 @@ export async function load(container) {
         //刷新按钮
         const refresh = e.target.closest('#js_refresh');
         if (refresh) {
+            // 防重复点击
+            if (isRefreshing) return;
+            isRefreshing = true;
+
             const savedUser = getSavedUser();
             if (!savedUser || savedUser.isLoggedIn === false) {
                 toast.warn(getI18n('login', 'errorNotLoggedIn'));
                 loadLogin();
+                isRefreshing = false;
                 return;
             }
             const icon = refresh.querySelector('.refresh-icon');
@@ -873,36 +904,41 @@ export async function load(container) {
                 [{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }],
                 { duration: 1200, easing: 'ease' }
             );
-            // 使用本地保存的账号密码请求最新课程数据
-            await refreshCourseData();
-            // 重置公共变量
-            scheduleView = 'weekView';
-            currentSemesterId = null;
-            currentWeek = 0;
-            currentDay = null;
-            dailySectionCount = 0;
-            timeSlots = [];
-            currentSemesterAndWeek = null;
-            courseDataLoaded = false;
-            // 重新加载课程数据
-            const loaded = await loadCourse('merge');
-            courseDataLoaded = !!loaded;
-            if (loaded) {
-                const semesterAndWeek = getCurrentSemesterAndWeek();
-                if (semesterAndWeek) {
-                    currentSemesterId = semesterAndWeek.semesterId;
-                    currentWeek = semesterAndWeek.week;
-                    if (semesterAndWeek.week !== 0) {
-                        currentSemesterAndWeek = semesterAndWeek;
+
+            try {
+                await refreshCourseData();
+                scheduleView = 'weekView';
+                currentSemesterId = null;
+                currentWeek = 0;
+                currentDay = null;
+                dailySectionCount = 0;
+                timeSlots = [];
+                currentSemesterAndWeek = null;
+                courseDataLoaded = false;
+                const loaded = await loadCourse('merge');
+                courseDataLoaded = !!loaded;
+                if (loaded) {
+                    const semesterAndWeek = getCurrentSemesterAndWeek();
+                    if (semesterAndWeek) {
+                        currentSemesterId = semesterAndWeek.semesterId;
+                        currentWeek = semesterAndWeek.week;
+                        if (semesterAndWeek.week !== 0) {
+                            currentSemesterAndWeek = semesterAndWeek;
+                        }
                     }
+                } else {
+                    toast.warn(getI18n('schedule', 'loadCourseError'));
                 }
-            } else {
+                updateCurrentSemester(container);
+                updateContentView(container);
+                updateCurrentWeek(container);
+                renderSchedule(container);
+            } catch (error) {
+                console.error('Refresh error:', error);
                 toast.warn(getI18n('schedule', 'loadCourseError'));
+            } finally {
+                isRefreshing = false;
             }
-            updateCurrentSemester(container);
-            updateContentView(container);
-            updateCurrentWeek(container);
-            renderSchedule(container);
         }
     });
 }

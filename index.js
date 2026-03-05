@@ -4,6 +4,7 @@ const pageLoaders = {
   settings: () => import('/assets/subpages/settings/settings.js').then(m => m.load)
 };
 
+const MAX_CACHE_SIZE = 3; // 最多缓存 3 个页面
 const cache = new Map();
 let current = null;
 const container = document.getElementById('page-container');
@@ -11,7 +12,15 @@ const tabbar = document.getElementById('tabbar');
 
 async function render(pageName) {
   const loader = cache.get(pageName) ?? await pageLoaders[pageName]();
+
+  // 始终将当前页面移到最新位置（实现 LRU 缓存）
+  cache.delete(pageName);
+  if (cache.size >= MAX_CACHE_SIZE) {
+    const firstKey = cache.keys().next().value;
+    cache.delete(firstKey);
+  }
   cache.set(pageName, loader);
+
   container.innerHTML = '';
   loader(container);
 }

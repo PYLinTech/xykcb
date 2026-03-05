@@ -23,7 +23,11 @@ if (isApp) {
 
 localStorage.setItem('setting_is_app', isApp ? 'true' : 'false');
 
-initFont();
-initTheme();
-initLanguage();
-initWelcome();
+// 并行初始化所有模块
+// initWelcome 不是 async，需要用 Promise.resolve 包装
+Promise.all([
+  initFont(),
+  initTheme(),
+  initLanguage(),
+  Promise.resolve(initWelcome())
+]).catch(err => console.error('Init error:', err));
