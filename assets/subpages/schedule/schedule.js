@@ -32,6 +32,7 @@ const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
+const startupUpdateEnabled = () => getSetting('startupUpdate') === 'true';
 
 // 根据课程名称生成颜色索引
 const getCourseColorIndex = (course) => {
@@ -743,6 +744,10 @@ export async function load(container) {
                 if (semesterAndWeek.week !== 0) {
                     currentSemesterAndWeek = semesterAndWeek;
                 }
+            }
+            // 自动更新课程数据
+            if (startupUpdateEnabled()) {
+                refreshCourseData();
             }
         } else {
             toast.warn(getI18n('schedule', 'loadCourseError'));
