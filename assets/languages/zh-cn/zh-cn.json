@@ -112,7 +112,7 @@
     "color": "颜色",
     "startupSettings": "启动设置",
     "autoUpdate": "启动时更新课程",
-    "weekViewStyle": "周视图样式",
+    "viewStyle": "视图样式",
     "showWeekend": "显示周末",
     "showTeacher": "显示教师",
     "showBorder": "显示表格框线",

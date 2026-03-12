@@ -112,7 +112,7 @@
     "color": "Color",
     "startupSettings": "Launch Settings",
     "autoUpdate": "Update Courses on Launch",
-    "weekViewStyle": "Week View Style",
+    "viewStyle": "View Style",
     "showWeekend": "Show Weekend",
     "showTeacher": "Show Teacher",
     "showBorder": "Show Grid Lines",

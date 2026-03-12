@@ -10,6 +10,17 @@ let current = null;
 const container = document.getElementById('page-container');
 const tabbar = document.getElementById('tabbar');
 
+// 记录页面是否已加载过（用于区分首次打开和切换回来）
+const pageLoaded = new Map();
+
+function isFirstLoad(pageName) {
+  if (!pageLoaded.has(pageName)) {
+    pageLoaded.set(pageName, true);
+    return true;
+  }
+  return false;
+}
+
 async function render(pageName) {
   const loader = cache.get(pageName) ?? await pageLoaders[pageName]();
 
@@ -21,7 +32,11 @@ async function render(pageName) {
   }
   cache.set(pageName, loader);
 
+  const firstLoad = isFirstLoad(pageName);
+
   container.innerHTML = '';
+  // 将是否首次加载的信息传递给页面
+  container.dataset.firstLoad = firstLoad;
   loader(container);
 }
 
