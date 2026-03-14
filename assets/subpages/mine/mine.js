@@ -4,6 +4,20 @@ import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
 import { API, fetchWithTimeout } from '/assets/common/api.js';
 
+// 暴露到全局供动态加载的脚本调用
+window.hideOverlay = hideOverlay;
+
+// 远程功能弹窗模板样式
+const OVERLAY_STYLE = `
+<style>
+    #js_grades_wrp { height: 100vh; display: flex; flex-direction: column; background: var(--weui-BG-1); }
+    .overlay-header { flex-shrink: 0; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--weui-BG-1); }
+    .overlay-title { font-size: 18px; font-weight: 600; color: var(--weui-FG-0); }
+    .overlay-close { position: absolute; right: 16px; width: 32px; height: 32px; border-radius: 50%; background: var(--weui-FG-5); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .overlay-close .ri-close-line { color: var(--weui-FG-0); font-size: 16px; }
+    .overlay-content { flex: 1; padding: 16px; overflow: auto; }
+</style>`;
+
 // 加载功能列表
 async function loadFunctions(container) {
     const savedUser = getSavedUser();
@@ -40,7 +54,19 @@ async function loadFunctions(container) {
                 const res = await fetch(func.url);
                 const html = await res.text();
                 hideToast();
-                showOverlay(null, html);
+
+                // 构建带框架的 HTML
+                const title = func[lang] || func['zh-cn'] || func.en;
+                const wrappedHtml = `${OVERLAY_STYLE}
+                    <div id="js_grades_wrp">
+                        <div class="overlay-header">
+                            <span class="overlay-title">${title}</span>
+                            <div class="overlay-close" id="overlayClose"><i class="ri-close-line"></i></div>
+                        </div>
+                        <div class="overlay-content">${html}</div>
+                    </div>
+                    <script>document.getElementById('overlayClose').onclick = window.hideOverlay;</script>`;
+                showOverlay(null, wrappedHtml);
             });
             grid.appendChild(item);
         }

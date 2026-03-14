@@ -3,6 +3,12 @@
 const BASE_URL = 'https://api.pylin.cn/xykcb';
 const CDN_URL = '/libraries';
 
+// 导出 BASE_URL 供其他模块读取
+export const API_CONFIG = {
+  BASE_URL,
+  CDN_URL
+};
+
 export const API = {
   // 获取支持的学校列表
   getSupportSchool: `${BASE_URL}/get-support-school`,

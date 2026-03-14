@@ -1,0 +1,283 @@
+<div id="grades_content">
+    <div id="grades_list"></div>
+    <div id="js_back_top" class="back-top"><i class="ri-arrow-up-line"></i></div>
+</div>
+
+<script type="module">
+    import { API_CONFIG, fetchWithTimeout } from '/assets/common/api.js';
+    import { toast, hideToast } from '/assets/common/toast.js';
+    import { getI18n, getCurrentLang } from '/assets/init/languages.js';
+    import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
+    import { showExportDialog as showChoiceDialog } from '/assets/common/export_dialog.js';
+    import '/libraries/sheetjs/xlsx.mini.min.js';
+    import '/libraries/html-to-image/html-to-image.min.js';
+
+    const BASE_URL = API_CONFIG.BASE_URL;
+    const container = document.getElementById('grades_content');
+    const gradesList = document.getElementById('grades_list');
+    const backTopBtn = document.getElementById('js_back_top');
+
+    // 多语言映射表
+    const i18n = {
+        'zh-cn': {
+            title: '导出成绩单', exportExcel: '导出为表格', exportImage: '导出为图片',
+            exporting: '导出中...', exportFailed: '导出失败', noDataExport: '暂无数据可导出',
+            allSemesters: '全部学期', selectSemester: '选择学期', fetchFailed: '获取成绩失败',
+            noData: '暂无成绩数据', noDataSemester: '该学期暂无成绩', loadFailed: '加载失败: ',
+            gpa: '平均绩点', export: '导出', no: '编号：', credit: '学分：', gpaPoint: '绩点：',
+            examType: '考试类型：', courseAttr: '课程属性：', courseNature: '课程性质：',
+            pass: '合格', fail: '不合格', evaluate: '请评教'
+        },
+        'en': {
+            title: 'Export Transcript', exportExcel: 'Export as Excel', exportImage: 'Export as Image',
+            exporting: 'Exporting...', exportFailed: 'Export failed', noDataExport: 'No data to export',
+            allSemesters: 'All Semesters', selectSemester: 'Select Semester', fetchFailed: 'Failed to fetch grades',
+            noData: 'No grade data', noDataSemester: 'No grades this semester', loadFailed: 'Load failed: ',
+            gpa: 'GPA', export: 'Export', no: 'No: ', credit: 'Credit: ', gpaPoint: 'GPA: ',
+            examType: 'Exam: ', courseAttr: 'Attr: ', courseNature: 'Nature: ',
+            pass: 'Pass', fail: 'Fail', evaluate: 'Evaluate'
+        }
+    };
+
+    const t = (key) => i18n[getCurrentLang()]?.[key] || i18n['zh-cn'][key] || key;
+
+    // Excel 表头
+    const EXCEL_HEADERS = {
+        'zh-cn': ['课程名称', '课程编号', '学分', '成绩', '绩点', '考试类型', '课程性质', '课程属性', '考试性质', '状态'],
+        'en': ['Course Name', 'Course No.', 'Credit', 'Score', 'GPA', 'Exam Type', 'Course Nature', 'Course Attr', 'Exam Nature', 'Status']
+    };
+
+    let currentSemester = '';
+    let savedUser = null;
+    let availableSemesters = [];
+    let currentGradesData = null;
+
+    const getSavedUser = () => JSON.parse(localStorage.getItem('login_user') || 'null');
+    const getScrollContainer = () => document.querySelector('.overlay-content') || container;
+
+    const getExportFileName = (ext) => {
+        const { name, studentID } = currentGradesData || {};
+        const semester = currentSemester || t('allSemesters');
+        const prefix = getCurrentLang() === 'en' ? 'Transcript_' : '成绩单_';
+        return `${prefix}${name}_${studentID}_${semester}.${ext}`;
+    };
+
+    function bindEvents() {
+        const scrollContainer = getScrollContainer();
+        backTopBtn?.addEventListener('click', () => scrollContainer.scrollTo({ top: 0, behavior: 'smooth' }));
+        scrollContainer.addEventListener('scroll', () => backTopBtn?.classList.toggle('visible', scrollContainer.scrollTop > 200));
+        container.addEventListener('click', (e) => {
+            if (e.target.closest('#js_semester_select')) showSemesterDialog();
+            else if (e.target.closest('#js_export')) handleExportClick();
+        });
+    }
+
+    const setExportBtnEnabled = (enabled) => {
+        const btn = document.getElementById('js_export');
+        if (btn) btn.style.pointerEvents = enabled ? 'auto' : 'none';
+    };
+
+    async function handleExportClick() {
+        if (!currentGradesData?.achievement?.length) {
+            toast.warn(t('noDataExport'));
+            return;
+        }
+        showChoiceDialog({
+            title: t('title'),
+            options: [
+                { value: 'excel', label: t('exportExcel') },
+                { value: 'image', label: t('exportImage') }
+            ],
+            onChange: async (value) => {
+                toast.loading(t('exporting'));
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                try {
+                    await value === 'excel' ? exportGradesToExcel() : exportGradesToImage();
+                } catch (e) {}
+            }
+        });
+    }
+
+    async function exportGradesToImage() {
+        try {
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:1000px;background:#fff;';
+            wrapper.appendChild(gradesList.cloneNode(true));
+            document.body.appendChild(wrapper);
+
+            const clone = wrapper.firstElementChild;
+            Object.assign(clone.style, { display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '12px', background: '#f5f5f5' });
+
+            clone.querySelectorAll('.grade-card').forEach(card => {
+                card.style.cssText = 'flex:1 1 300px;min-width:300px;max-width:none;white-space:nowrap;position:relative;overflow:visible !important;box-sizing:border-box;border-radius:12px;';
+            });
+            clone.querySelectorAll('.grade-badge').forEach(badge => {
+                badge.style.cssText = 'position:absolute;top:0;right:0;padding:4px 10px;border-radius:0 12px 0 12px;';
+            });
+
+            const dataUrl = await window.htmlToImage.toPng(clone, { width: 1000, height: clone.offsetHeight, pixelRatio: 2, backgroundColor: '#ffffff' });
+            wrapper.remove();
+
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = getExportFileName('png');
+            link.click();
+            URL.revokeObjectURL(link.href);
+            hideToast();
+        } catch (e) {
+            hideToast();
+            toast.warn(t('exportFailed'));
+        }
+    }
+
+    async function exportGradesToExcel() {
+        try {
+            const { achievement } = currentGradesData;
+            const headers = EXCEL_HEADERS[getCurrentLang()] || EXCEL_HEADERS['zh-cn'];
+            const data = achievement.map(c => [c.courseName, c.kcbh, c.credit, c.fraction, c.jd, c.examName, c.courseNature, c.curriculumAttributes, c.examinationNature, c.sfjg]);
+            const ws = window.XLSX.utils.aoa_to_sheet([
+                [getCurrentLang() === 'en' ? 'Generated by Xiaoyu Schedule, for reference only.' : '本成绩单由小雨课程表生成，不具备成绩认定效用，仅供参考！'],
+                headers, ...data
+            ]);
+            const wb = window.XLSX.utils.book_new();
+            window.XLSX.utils.book_append_sheet(wb, ws, 'Grades');
+            window.XLSX.writeFile(wb, getExportFileName('xlsx'));
+            hideToast();
+        } catch (e) {
+            hideToast();
+            toast.warn(t('exportFailed'));
+        }
+    }
+
+    function showSemesterDialog() {
+        if (!availableSemesters.length) return;
+        HalfRadioDialog.show({
+            title: t('selectSemester'),
+            options: [{ value: '', label: t('allSemesters') }, ...availableSemesters.map(id => ({ value: id, label: id }))],
+            selected: currentSemester,
+            onChange: (value) => {
+                currentSemester = value;
+                document.querySelector('#js_semester_select span').textContent = value || t('allSemesters');
+                loadGrades();
+            }
+        });
+    }
+
+    async function loadGrades() {
+        savedUser = savedUser || getSavedUser();
+        const { school, account, password } = savedUser || {};
+        setExportBtnEnabled(false);
+        toast.loading(getI18n('common', 'toastLoading'));
+        try {
+            let url = `${BASE_URL}/get-course-grades?school=${school}&account=${account}&password=${encodeURIComponent(password)}`;
+            if (currentSemester) url += `&semester=${currentSemester}`;
+            const result = await (await fetchWithTimeout(url)).json();
+            hideToast();
+            setExportBtnEnabled(true);
+            if (!result.success) { gradesList.innerHTML = `<div class="error">${t('fetchFailed')}</div>`; return; }
+            currentGradesData = result.data['all-grades'][0];
+            availableSemesters = result.data['all-semester'].map(s => s.semesterId).reverse();
+            renderGrades(currentGradesData);
+        } catch (e) { hideToast(); setExportBtnEnabled(true); toast.warn(t('loadFailed') + e.message); }
+    }
+
+    const getBadgeHtml = (sfjg) => {
+        const map = { '合格': t('pass'), '不合格': t('fail'), '请评教': t('evaluate') };
+        if (!map[sfjg]) return '';
+        return `<span class="grade-badge badge-${sfjg === '合格' ? 'pass' : sfjg === '不合格' ? 'fail' : 'pending'}">${map[sfjg]}</span>`;
+    };
+
+    function renderGrades(data) {
+        if (!data) { gradesList.innerHTML = `<div class="error">${t('noData')}</div>`; return; }
+        const { name, studentID, achievement, pjxfjd } = data;
+        let html = `<div class="info-card">
+            <div class="info-header">
+                <div class="info-avatar"><i class="ri-user-line"></i></div>
+                <div class="info-main"><div class="info-name">${name}</div><div class="info-id">${studentID}</div></div>
+                <div class="info-gpa"><div class="info-gpa-value">${pjxfjd}</div><div class="info-gpa-label">${t('gpa')}</div></div>
+            </div>
+            <div class="info-actions">
+                <a id="js_semester_select" class="semester-select"><i class="ri-calendar-line"></i><span>${currentSemester || t('allSemesters')}</span><i class="ri-arrow-down-s-line"></i></a>
+                <a id="js_export" class="semester-select"><i class="ri-download-line"></i><span>${t('export')}</span></a>
+            </div>
+        </div>`;
+
+        if (!achievement.length) html += `<div class="error">${t('noDataSemester')}</div>`;
+        else achievement.forEach((c, i) => html += `<div class="grade-card course-bg-${i % 10}">
+            ${getBadgeHtml(c.sfjg)}
+            <div class="grade-main"><div class="grade-header"><span class="grade-name">${c.courseName}</span></div>
+            <div class="grade-body"><div class="grade-left"><span class="grade-score">${c.sfjg === '请评教' ? '—' : c.fraction}</span></div>
+            <div class="grade-right"><div class="grade-info">
+                <span class="grade-info-item">${t('no')}${c.kcbh}</span>
+                <span class="grade-info-item">${t('credit')}${c.credit}</span>
+                <span class="grade-info-item">${t('gpaPoint')}${c.jd}</span>
+                <span class="grade-info-item">${t('examType')}${c.examName}</span>
+                <span class="grade-info-item">${t('courseAttr')}${c.curriculumAttributes}</span>
+                <span class="grade-info-item">${t('courseNature')}${c.courseNature}</span>
+            </div></div></div></div></div>`);
+        gradesList.innerHTML = html;
+    }
+
+    requestAnimationFrame(() => {
+        bindEvents();
+        savedUser = getSavedUser();
+        if (savedUser?.school && savedUser?.account && savedUser?.password) loadGrades();
+    });
+</script>
+
+<style>
+    :root { --grade-bg-0: #c8e6c9; --grade-bg-1: #bbdefb; --grade-bg-2: #ffe0b2; --grade-bg-3: #f8bbd9; --grade-bg-4: #e1bee7; --grade-bg-5: #b2dfdb; --grade-bg-6: #fff9c4; --grade-bg-7: #d1c4e9; --grade-bg-8: #c5cae9; --grade-bg-9: #ffcdd2; }
+    [data-weui-theme="dark"] { --grade-bg-0: #4a7c45; --grade-bg-1: #3d6a99; --grade-bg-2: #997a45; --grade-bg-3: #994d6a; --grade-bg-4: #7a4a99; --grade-bg-5: #458c85; --grade-bg-6: #999045; --grade-bg-7: #5f4a99; --grade-bg-8: #4a5c99; --grade-bg-9: #994a4a; }
+    @media (prefers-color-scheme: dark) { body:not([data-weui-theme="light"]) { --grade-bg-0: #4a7c45; --grade-bg-1: #3d6a99; --grade-bg-2: #997a45; --grade-bg-3: #994d6a; --grade-bg-4: #7a4a99; --grade-bg-5: #458c85; --grade-bg-6: #999045; --grade-bg-7: #5f4a99; --grade-bg-8: #4a5c99; --grade-bg-9: #994a4a; } }
+
+    .course-bg-0 { background-color: var(--grade-bg-0); }
+    .course-bg-1 { background-color: var(--grade-bg-1); }
+    .course-bg-2 { background-color: var(--grade-bg-2); }
+    .course-bg-3 { background-color: var(--grade-bg-3); }
+    .course-bg-4 { background-color: var(--grade-bg-4); }
+    .course-bg-5 { background-color: var(--grade-bg-5); }
+    .course-bg-6 { background-color: var(--grade-bg-6); }
+    .course-bg-7 { background-color: var(--grade-bg-7); }
+    .course-bg-8 { background-color: var(--grade-bg-8); }
+    .course-bg-9 { background-color: var(--grade-bg-9); }
+
+    #grades_content { display: flex; flex-direction: column; min-height: 100%; }
+    #grades_list { padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; box-sizing: border-box; }
+    #grades_list .grade-card { min-width: 0; box-sizing: border-box; }
+    #grades_list .info-card { grid-column: 1 / -1; width: 100%; box-sizing: border-box; }
+    .info-card { background: rgba(255,255,255,0.2); border-radius: 16px; padding: 16px; margin-bottom: 8px; backdrop-filter: blur(0.6px); -webkit-backdrop-filter: blur(0.6px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .info-header { display: flex; align-items: center; gap: 16px; }
+    .info-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--weui-BRAND); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; flex-shrink: 0; }
+    .info-main { flex: 1; }
+    .info-name { font-size: 18px; font-weight: 600; color: var(--weui-FG-0); }
+    .info-id { font-size: 13px; color: var(--weui-FG-1); margin-top: 2px; }
+    .info-gpa { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 16px; border-left: 1px solid var(--weui-FG-4); min-width: 80px; }
+    .info-gpa-value { font-size: 22px; font-weight: 700; color: var(--weui-BRAND); line-height: 1.2; }
+    .info-gpa-label { font-size: 11px; color: var(--weui-FG-1); }
+    .info-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .info-actions .semester-select:first-child { flex: 1; }
+    .info-actions #js_export { flex-shrink: 0; }
+    .semester-select { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px; background: transparent; border-radius: 20px; font-size: 14px; color: var(--weui-FG-0); cursor: pointer; }
+    .semester-select:active { background: var(--weui-FG-5); }
+    .grade-card { display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
+    .grade-main { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .grade-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; }
+    .grade-name { font-size: 16px; color: var(--weui-FG-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; padding-right: 30px; }
+    .grade-body { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: auto; }
+    .grade-left { flex-shrink: 0; padding-left: 10px; }
+    .grade-score { font-size: 20px; font-weight: 700; color: var(--weui-FG-0); line-height: 1; }
+    .grade-right { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .grade-info { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .grade-info-item { font-size: 12px; color: var(--weui-FG-0); padding: 2px 6px; }
+    .grade-badge { position: absolute; top: 0; right: 0; padding: 4px 10px; font-size: 11px; font-weight: 500; border-radius: 0 12px 0 12px; }
+    .badge-pass { background: #52c41a; color: #fff; }
+    .badge-fail { background: var(--weui-RED); color: #fff; }
+    .badge-pending { background: #faad14; color: #fff; }
+    .error { text-align: center; padding: 40px; color: var(--weui-FG-1); }
+    .back-top { position: fixed; bottom: 180px; right: 20px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.2); color: #333; visibility: hidden; opacity: 0; transform: scale(0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; transition: opacity 0.3s, transform 0.3s, visibility 0.3s, box-shadow 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(0.6px); -webkit-backdrop-filter: blur(0.6px); }
+    .back-top.visible { visibility: visible; opacity: 1; transform: scale(1); }
+    .back-top:active { transform: scale(0.9) translateY(-8px); transition: transform 0.1s ease-in-out; }
+    .back-top i { font-size: 20px; display: flex; align-items: center; justify-content: center; }
+</style>

@@ -16,6 +16,8 @@ Contact: PYLinTech@163.com
 |---|---|---|
 | **WeUI** | 微信原生设计规范组件库 | [https://github.com/Tencent/weui](https://github.com/Tencent/weui) |
 | **RemixIcon** | 开源图标库 | [https://github.com/Remix-Design/RemixIcon](https://github.com/Remix-Design/RemixIcon) |
+| **SheetJS (xlsx)** | 电子表格处理库 | [https://github.com/SheetJS/sheetjs](https://github.com/SheetJS/sheetjs) |
+| **html-to-image** | DOM 转图片库 | [https://github.com/bubkoo/html-to-image](https://github.com/bubkoo/html-to-image) |
 
 ## 项目结构
 
@@ -27,22 +29,33 @@ xykcb/
 ├── assets/
 │   ├── common/
 │   │   ├── api.js                  # API 地址统一管理
+│   │   ├── dialog.js               # 标准对话框组件
+│   │   ├── export_dialog.js        # 导出选择弹窗组件
 │   │   ├── half_radio_dialog.js    # 半屏单选弹窗组件
+│   │   └── toast.js                # Toast 提示组件
 │   ├── init/
 │   │   ├── init.js                 # 初始化入口
 │   │   ├── fonts.js                # 字体加载（钉钉进步体/MiSans/霞鹜文楷）
 │   │   ├── themes.js               # 主题管理（浅色/深色/跟随系统）
 │   │   └── languages.js            # 国际化配置
 │   └── subpages/
-│       ├── login/                  # 登录页面（待开发）
-│       ├── mine/mine.html/js       # 我的页面
-│       ├── schedule/schedule.html/js # 课程页面
-│       ├── settings/settings.html/js # 设置页面（语言/主题/字体）
-│       └── welcome/                # 欢迎页面（待开发）
+│       ├── login/                   # 登录页面
+│       ├── mine/                    # 我的页面
+│       │   └── mine.html/js         # 远程功能入口
+│       ├── schedule/                # 课程页面
+│       │   └── schedule.html/js     # 课程表展示
+│       ├── settings/                # 设置页面
+│       │   └── settings.html/js    # 语言/主题/字体设置
+│       └── welcome/                 # 欢迎页面
+├── functions/              # 远程功能模块
+│   └── hnit_a/           # 湖南工学院功能
+│       └── grades.html    # 成绩查询导出
 └── libraries/
-    ├── fonts/          # 字体文件（.ttf）
-    ├── remixicon/      # 图标字体
-    └── weui/           # WeUI CSS 组件库
+    ├── fonts/             # 字体文件（.ttf）
+    ├── html-to-image/     # DOM 转图片库
+    ├── remixicon/         # 图标字体
+    ├── sheetjs/           # Excel 处理库
+    └── weui/              # WeUI CSS 组件库
 ```
 
 ### 功能概览
@@ -50,10 +63,12 @@ xykcb/
 | 模块 | 功能 |
 |------|------|
 | **路由** | 底部 Tabbar 切换（课程/我的/设置），动态加载 |
-| **主题** | 浅色/深色/跟随系统，使用 WeUI 变量 |
-| **字体** | 4种字体可选：系统/钉钉进步体/MiSans/霞鹜文楷 |
-| **弹窗** | 半屏单选对话框，动画效果 |
-| **设置** | 语言切换、主题切换、字体切换（持久化到 localStorage） |
+| **主题** | 浅色/深色/跟随系统，使用 WeUI 变量，7种品牌颜色可选 |
+| **字体** | 6种字体可选：系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体/游趣体 |
+| **弹窗** | 半屏单选对话框、标准对话框、导出选择对话框，动画效果 |
+| **设置** | 语言切换、主题切换、字体切换、颜色切换（持久化到 localStorage） |
+| **成绩导出** | 支持导出为 Excel 表格和 PNG 图片，中英文双语支持 |
+| **远程功能** | 插件式功能扩展，通过 API 动态加载 |
 
 ### 技术栈
 
@@ -61,6 +76,8 @@ xykcb/
 - **图标**：RemixIcon
 - **模块化**：ES6 Module
 - **持久化**：localStorage
+- **导出**：SheetJS (xlsx)、html-to-image
+- **架构**：插件式远程功能加载
 
 ## 许可证
 
@@ -181,6 +198,15 @@ xykcb/
   - 支持禁用遮罩关闭
 - **API**：`CalendarPicker.show({ initialDate, onChange, onClose, allowMaskClose })`
 
+#### 2.6 导出选择弹窗 (`export_dialog.js`)
+- **功能**：居中显示的导出方式选择弹窗
+- **特性**：
+  - 动态注入样式，支持深色/浅色模式
+  - 平滑淡入淡出动画
+  - 点击遮罩或关闭按钮关闭
+  - 事件委托处理选项点击
+- **API**：`showExportDialog({ title, options, onChange })`
+
 #### 2.6 课程数据解析器 (`course_parser.js`)
 - **功能**：解析和管理课程数据
 - **加载模式**：`local`（本地存储）、`online`（在线加载）、`merge`（合并加载）
@@ -216,7 +242,7 @@ xykcb/
 - **设置项**：
   - 语言切换（中文/英文）
   - 主题切换（跟随系统/浅色/深色）
-  - 字体切换（系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体）
+  - 字体切换（系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体/游趣体）
   - 品牌颜色选择（7种颜色：苹果绿、活力黄、梦幻紫、冰晶蓝、薄纱粉、远山青、自由橙）
   - 周末显示开关
   - 教师显示开关
@@ -224,11 +250,24 @@ xykcb/
 - **持久化**：所有设置保存到 localStorage
 
 #### 3.3 我的页面 (`mine/`)
-- **功能**：用户个人信息入口
-- **特性**：登录后展示用户信息（待开发）
+- **功能**：用户个人信息入口和远程功能入口
+- **特性**：
+  - 登录后展示用户信息（账号、学校）
+  - 从 API 动态加载学校支持的功能列表
+  - 远程功能以 Overlay 弹窗形式加载
 
 #### 3.4 登录页面 (`login/`)
-- **功能**：用户登录认证（待开发）
+- **功能**：用户登录认证
+- **特性**：
+  - 支持多学校选择
+  - 登录成功后自动获取课程数据
+  - 账号密码本地保存
+
+#### 3.5 远程功能模块 (`/functions/`)
+- **功能**：插件式功能扩展
+- **架构**：通过 API 获取学校支持的功能列表，动态加载 HTML 和脚本
+- **示例**：`hnit_a/grades.html` - 成绩查询与导出
+- **导出功能**：支持导出为 Excel 表格和 PNG 图片
 
 ---
 
