@@ -124,4 +124,16 @@ export async function load(container) {
       });
     }
   });
+
+  // 渲染版本信息: v版本 · 渠道 · 平台
+  const appVersion = localStorage.getItem('setting_app_version');
+  const appPlatform = localStorage.getItem('setting_app_platform');
+  const appChannel = localStorage.getItem('setting_app_channel');
+  const versionText = appVersion ? `v${appVersion}` : '';
+  const channelText = appChannel || '';
+  const platformText = appPlatform || '';
+  const parts = [versionText, channelText, platformText].filter(Boolean);
+  container.querySelector('#js_app_version').textContent = parts.join(' · ');
+  container.querySelector('#js_app_channel').textContent = '';
+  container.querySelector('#js_app_platform').textContent = '';
 }

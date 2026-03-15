@@ -64,8 +64,9 @@ export async function loadFont(fontName, showToast = false) {
     document.body.style.fontFamily = '';
     return;
   }
-  const isApp = localStorage.getItem('setting_is_app') === 'true';
-  if (showToast && !isApp) {
+  const appType = localStorage.getItem('setting_app_type');
+  // 只在 web 环境显示 toast
+  if (showToast && appType === 'web') {
     toast.loading(getI18n('common', 'toastLoading'));
   }
   const fileName = fontConfig[fontName] || 'DingTalk-JinBuTi.ttf';
@@ -89,7 +90,7 @@ export async function loadFont(fontName, showToast = false) {
   const font = await new FontFace(fontName, arrayBuffer).load();
   document.fonts.add(font);
   document.body.style.fontFamily = fontName;
-  if (showToast && !isApp) {
+  if (showToast && appType === 'web') {
     hideToast();
   }
 }
