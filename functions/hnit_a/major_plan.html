@@ -68,7 +68,8 @@
 
     const getExportFileName = (ext) => {
         const prefix = getCurrentLang() === 'en' ? 'MajorPlan_' : '培养计划_';
-        return `${prefix}${savedUser?.account || ''}.${ext}`;
+        const semester = currentSemester ? (getCurrentLang() === 'en' ? `Semester${currentSemester}` : `第${currentSemester}学期`) : t('allSemesters');
+        return `${prefix}${savedUser?.account || ''}_${semester}.${ext}`;
     };
 
     function bindEvents() {
@@ -202,7 +203,8 @@
             const typeLabel = t(courseType);
 
             html += `<div class="grade-card course-bg-${i % 10}">
-                <div class="grade-main"><div class="grade-header"><span class="grade-name">${c.courseName}</span><span class="course-type-badge badge-${courseType}">${typeLabel}</span></div>
+                <span class="grade-badge badge-${courseType}">${typeLabel}</span>
+                <div class="grade-main"><div class="grade-header"><span class="grade-name">${c.courseName}</span></div>
                 <div class="grade-body"><div class="grade-left"><span class="grade-score">${c.credit}</span></div>
                 <div class="grade-right"><div class="grade-info">
                     <span class="grade-info-item">${t('no')}${c.courseCode}</span>
@@ -261,7 +263,7 @@
     .grade-main { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
     .grade-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; }
     .grade-name { font-size: 16px; color: var(--weui-FG-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-    .course-type-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+    .grade-badge { position: absolute; top: 0; right: 0; padding: 4px 10px; font-size: 11px; font-weight: 500; border-radius: 0 12px 0 12px; }
     .badge-required { background: #1890ff; color: #fff; }
     .badge-limited { background: #fa8c16; color: #fff; }
     .badge-elective { background: #52c41a; color: #fff; }
