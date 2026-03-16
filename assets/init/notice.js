@@ -5,7 +5,7 @@ const noticeConfig = {
   // 公告内容（支持 HTML）
   content: '公告内容',
   // 是否启用公告弹窗
-  enabled: true
+  enabled: false
 };
 
 const STYLES = `
@@ -61,6 +61,5 @@ export function initNotice() {
   };
 
   // 事件绑定
-  mask.addEventListener('click', close);
   closeBtn.addEventListener('click', close);
 }
