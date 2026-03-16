@@ -8,8 +8,7 @@
     import { toast, hideToast } from '/assets/common/toast.js';
     import { getI18n, getCurrentLang } from '/assets/init/languages.js';
     import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
-    import { showExportDialog as showChoiceDialog } from '/assets/common/export_dialog.js';
-    import { showNotice } from '/assets/common/notice.js';
+    import { showExportDialog, showNotice } from '/assets/common/notice_dialog.js';
     import '/libraries/sheetjs/xlsx.mini.min.js';
 
     const isMiniProgram = localStorage.getItem('setting_app_type') === 'miniapp';
@@ -104,7 +103,7 @@
             return;
         }
 
-        showChoiceDialog({
+        showExportDialog({
             title: t('title'),
             options: [
                 { value: 'excel', label: t('exportExcel') }
