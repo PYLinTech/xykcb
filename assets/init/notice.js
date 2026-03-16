@@ -1,13 +1,3 @@
-// 公告配置
-const noticeConfig = {
-  // 公告标题
-  title: '通知公告',
-  // 公告内容（支持 HTML）
-  content: '公告内容',
-  // 是否启用公告弹窗
-  enabled: false
-};
-
 const STYLES = `
 #noticeDialogWrap { position: fixed; inset: 0; z-index: 11111; pointer-events: none; }
 .notice-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.2s; pointer-events: auto; }
@@ -19,6 +9,16 @@ const STYLES = `
 .notice-body { font-size: 14px; color: var(--weui-FG-0); line-height: 1.5; white-space: pre-wrap; overflow-y: auto; max-height: 60vh; }
 `;
 
+async function loadNoticeConfig() {
+  try {
+    const res = await fetch('https://api.pylin.cn/xykcb_notice.json');
+    return await res.json();
+  } catch (e) {
+    console.error('Failed to load notice config:', e);
+    return null;
+  }
+}
+
 function injectStyles() {
   if (document.getElementById('noticeDialogStyles')) return;
   const style = document.createElement('style');
@@ -28,8 +28,9 @@ function injectStyles() {
 }
 
 // 初始化公告弹窗
-export function initNotice() {
-  if (!noticeConfig.enabled) return;
+export async function initNotice() {
+  const noticeConfig = await loadNoticeConfig();
+  if (!noticeConfig || !noticeConfig.enabled) return;
 
   injectStyles();
   document.getElementById('noticeDialogWrap')?.remove();
