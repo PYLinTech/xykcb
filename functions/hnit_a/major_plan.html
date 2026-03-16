@@ -9,8 +9,10 @@
     import { getI18n, getCurrentLang } from '/assets/init/languages.js';
     import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
     import { showExportDialog as showChoiceDialog } from '/assets/common/export_dialog.js';
+    import { showNotice } from '/assets/common/notice.js';
     import '/libraries/sheetjs/xlsx.mini.min.js';
 
+    const isMiniProgram = localStorage.getItem('setting_app_type') === 'miniapp';
     const BASE_URL = API_CONFIG.BASE_URL;
     const container = document.getElementById('plan_content');
     const planList = document.getElementById('plan_list');
@@ -92,6 +94,16 @@
             toast.warn(t('noDataExport'));
             return;
         }
+
+        // 小程序环境提示
+        if (isMiniProgram) {
+            const msg = getCurrentLang() === 'en'
+                ? 'WeChat Mini Program does not support download/export. Please open in browser to continue: xykcb.pylin.cn'
+                : '微信小程序不支持下载导出，请在浏览器打开后继续：xykcb.pylin.cn';
+            showNotice(getCurrentLang() === 'en' ? 'Notice' : '提示', msg);
+            return;
+        }
+
         showChoiceDialog({
             title: t('title'),
             options: [

@@ -27,11 +27,7 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-// 初始化公告弹窗
-export async function initNotice() {
-  const noticeConfig = await loadNoticeConfig();
-  if (!noticeConfig || !noticeConfig.enabled) return;
-
+function showNoticeDialog(title, content, maskClosable = false) {
   injectStyles();
   document.getElementById('noticeDialogWrap')?.remove();
 
@@ -41,8 +37,8 @@ export async function initNotice() {
   wrap.innerHTML = `
     <div class="notice-mask"></div>
     <div class="notice-actions">
-      <div class="notice-header">${noticeConfig.title}<i class="notice-close ri-close-line"></i></div>
-      <div class="notice-body">${noticeConfig.content}</div>
+      <div class="notice-header">${title}<i class="notice-close ri-close-line"></i></div>
+      <div class="notice-body">${content}</div>
     </div>
   `;
 
@@ -52,7 +48,6 @@ export async function initNotice() {
   const actions = wrap.querySelector('.notice-actions');
   const closeBtn = wrap.querySelector('.notice-close');
 
-  // 淡入动画
   requestAnimationFrame(() => mask.classList.add('active') || actions.classList.add('active'));
 
   const close = () => {
@@ -61,6 +56,20 @@ export async function initNotice() {
     setTimeout(() => wrap.remove(), 200);
   };
 
-  // 事件绑定
   closeBtn.addEventListener('click', close);
+  if (maskClosable) {
+    mask.addEventListener('click', close);
+  }
+}
+
+// 初始化公告弹窗（由 init.js 调用，不支持遮罩关闭）
+export async function initNotice() {
+  const noticeConfig = await loadNoticeConfig();
+  if (!noticeConfig || !noticeConfig.enabled) return;
+  showNoticeDialog(noticeConfig.title, noticeConfig.content, false);
+}
+
+// 外部调用方法（可传入标题、内容、是否支持遮罩关闭）
+export function showNotice(title, content, maskClosable = true) {
+  showNoticeDialog(title, content, maskClosable);
 }
