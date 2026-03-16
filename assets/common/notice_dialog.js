@@ -10,12 +10,12 @@ const STYLES = `
 .dialog-body.options { white-space: normal; }
 `;
 
+let styleInjected = false;
+
 function injectStyles() {
-    if (document.getElementById('dialogStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'dialogStyles';
-    style.textContent = STYLES;
-    document.head.appendChild(style);
+    if (styleInjected) return;
+    styleInjected = true;
+    document.head.appendChild(Object.assign(document.createElement('style'), { id: 'dialogStyles', textContent: STYLES }));
 }
 
 function createDialog({ id, title, content, maskClosable = false, bodyClass = '', onClose = () => {}, onClick = () => {} }) {
@@ -25,8 +25,6 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
     const wrap = document.createElement('div');
     wrap.id = id;
     wrap.className = 'dialog-wrap';
-    if (id === 'noticeDialogWrap') wrap.style.zIndex = '11111';
-
     wrap.innerHTML = `
         <div class="dialog-mask"></div>
         <div class="dialog-actions">
@@ -34,12 +32,9 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
             <div class="dialog-body${bodyClass ? ' ' + bodyClass : ''}">${content}</div>
         </div>
     `;
-
     document.body.appendChild(wrap);
 
-    const mask = wrap.querySelector('.dialog-mask');
-    const actions = wrap.querySelector('.dialog-actions');
-
+    const [mask, actions, closeBtn] = wrap.querySelectorAll('.dialog-mask, .dialog-actions, .dialog-close');
     requestAnimationFrame(() => mask.classList.add('active') || actions.classList.add('active'));
 
     const close = () => {
@@ -48,14 +43,9 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
         setTimeout(() => wrap.remove() || onClose(), 200);
     };
 
-    wrap.querySelector('.dialog-close').addEventListener('click', close);
-    if (maskClosable) mask.addEventListener('click', close);
-    if (onClick) {
-        wrap.addEventListener('click', (e) => {
-            const result = onClick(e, close);
-            if (result === false) return;
-        });
-    }
+    closeBtn.onclick = close;
+    if (maskClosable) mask.onclick = close;
+    if (onClick) wrap.onclick = e => { if (onClick(e, close) === false) e.stopPropagation(); };
 
     return { wrap, close };
 }
@@ -71,25 +61,17 @@ async function loadNoticeConfig() {
 }
 
 export async function initNotice() {
-    const noticeConfig = await loadNoticeConfig();
-    if (!noticeConfig || !noticeConfig.enabled) return;
+    const config = await loadNoticeConfig();
+    if (!config?.enabled) return;
 
-    const storedLatest = localStorage.getItem('notice_latest');
-    if (storedLatest && parseInt(storedLatest) >= parseInt(noticeConfig.latest)) return;
+    const stored = localStorage.getItem('notice_latest');
+    if (stored && parseInt(stored) >= parseInt(config.latest)) return;
 
-    showNotice(noticeConfig.title, noticeConfig.content, false, () => {
-        localStorage.setItem('notice_latest', noticeConfig.latest);
-    });
+    showNotice(config.title, config.content, false, () => localStorage.setItem('notice_latest', config.latest));
 }
 
 export function showNotice(title, content, maskClosable = true, onClose = () => {}) {
-    createDialog({
-        id: 'noticeDialogWrap',
-        title,
-        content,
-        maskClosable,
-        onClose
-    });
+    createDialog({ id: 'noticeDialogWrap', title, content, maskClosable, onClose });
 }
 
 export function showExportDialog({ title, options, onChange = () => {}, maskClosable = true }) {
@@ -105,11 +87,7 @@ export function showExportDialog({ title, options, onChange = () => {}, maskClos
         maskClosable,
         onClick: (e, close) => {
             const opt = e.target.closest('.dialog-option');
-            if (opt) {
-                e.stopPropagation();
-                close();
-                onChange(opt.dataset.value);
-            }
+            if (opt) { close(); onChange(opt.dataset.value); }
         }
     });
 }
