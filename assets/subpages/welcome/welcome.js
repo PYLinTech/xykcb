@@ -1,6 +1,7 @@
 import { showOverlay, hideOverlay } from '/index.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { getCurrentLang } from '/assets/init/languages.js';
+import { initNotice } from '/assets/common/notice_dialog.js';
 
 const welcomeVersion = 260209;
 
@@ -8,6 +9,9 @@ export function initWelcome() {
   const localWelcomeVersion = localStorage.getItem('localWelcomeVersion');
   if (!localWelcomeVersion || Number(localWelcomeVersion) < welcomeVersion) {
     loadWelcome();
+  } else {
+    // welcome 不需要显示，直接调用公告
+    initNotice();
   }
 }
 
@@ -27,6 +31,8 @@ function bindEvents() {
 function agree() {
   localStorage.setItem('localWelcomeVersion', welcomeVersion);
   hideOverlay();
+  // 用户已阅读并同意后，调用公告
+  initNotice();
 }
 
 function disagree() {

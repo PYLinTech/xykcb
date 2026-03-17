@@ -2,7 +2,6 @@ import { initFont } from '/assets/init/fonts.js';
 import { initTheme } from '/assets/init/themes.js';
 import { initLanguage } from '/assets/init/languages.js';
 import { initWelcome } from '/assets/subpages/welcome/welcome.js';
-import { initNotice } from '/assets/common/notice_dialog.js';
 
 // 解析 App UA: xykcb_app/260303 (Platform/Android; Channel/Xiaomi;) 或 miniProgram
 const ua = navigator.userAgent;
@@ -46,6 +45,5 @@ Promise.all([
   initFont(),
   initTheme(),
   initLanguage(),
-  Promise.resolve(initWelcome()),
-  Promise.resolve(initNotice())
+  Promise.resolve(initWelcome())
 ]).catch(err => console.error('Init error:', err));

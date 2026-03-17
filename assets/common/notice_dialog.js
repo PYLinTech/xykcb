@@ -1,3 +1,6 @@
+// 远程公告配置地址
+const NOTICE_API_URL = 'https://api.pylin.cn/xykcb_notice.json';
+
 const STYLES = `
 .dialog-wrap { position: fixed; inset: 0; z-index: 11111; pointer-events: none; }
 .dialog-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.2s; pointer-events: auto; }
@@ -52,7 +55,7 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
 
 async function loadNoticeConfig() {
     try {
-        const res = await fetch('https://api.pylin.cn/xykcb_notice.json');
+        const res = await fetch(NOTICE_API_URL);
         return await res.json();
     } catch (e) {
         console.error('Failed to load notice config:', e);

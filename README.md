@@ -6,7 +6,7 @@ Contact: PYLinTech@163.com
 
 ## 项目简介
 
-小雨课程表，给移动端一个最佳的使用体验。
+小雨课程表是一款面向移动端优化的课程表应用，提供课程展示、成绩查询、导出等功能。支持 Web、原生 App 和微信小程序三种运行环境。
 
 ## 技术依赖
 
@@ -14,17 +14,17 @@ Contact: PYLinTech@163.com
 
 | 库 | 描述 | 链接 |
 |---|---|---|
-| **WeUI** | 微信原生设计规范组件库 | [https://github.com/Tencent/weui](https://github.com/Tencent/weui) |
-| **RemixIcon** | 开源图标库 | [https://github.com/Remix-Design/RemixIcon](https://github.com/Remix-Design/RemixIcon) |
-| **SheetJS (xlsx)** | 电子表格处理库 | [https://github.com/SheetJS/sheetjs](https://github.com/SheetJS/sheetjs) |
-| **html-to-image** | DOM 转图片库 | [https://github.com/bubkoo/html-to-image](https://github.com/bubkoo/html-to-image) |
+| **WeUI** | 微信原生设计规范组件库 | [GitHub](https://github.com/Tencent/weui) |
+| **RemixIcon** | 开源图标库 | [GitHub](https://github.com/Remix-Design/RemixIcon) |
+| **SheetJS (xlsx)** | 电子表格处理库 | [GitHub](https://github.com/SheetJS/sheetjs) |
+| **html-to-image** | DOM 转图片库 | [GitHub](https://github.com/bubkoo/html-to-image) |
 
 ## 项目结构
 
 ```
 xykcb/
 ├── index.html           # 主页面（入口）
-├── index.js             # 页面路由/切换逻辑
+├── index.js             # 页面路由/切换逻辑（LRU缓存）
 ├── index.css            # 全局样式
 ├── assets/
 │   ├── common/
@@ -32,7 +32,10 @@ xykcb/
 │   │   ├── dialog.js               # 标准对话框组件
 │   │   ├── export_dialog.js        # 导出选择弹窗组件
 │   │   ├── half_radio_dialog.js    # 半屏单选弹窗组件
-│   │   └── toast.js                # Toast 提示组件
+│   │   ├── toast.js                # Toast 提示组件
+│   │   ├── calendar_picker.js      # 日历选择器组件
+│   │   ├── course_parser.js        # 课程数据解析器
+│   │   └── notice_dialog.js        # 公告/导出对话框组件
 │   ├── init/
 │   │   ├── init.js                 # 初始化入口
 │   │   ├── fonts.js                # 字体加载（钉钉进步体/MiSans/霞鹜文楷）
@@ -61,14 +64,16 @@ xykcb/
 ### 功能概览
 
 | 模块 | 功能 |
-|------|------|
-| **路由** | 底部 Tabbar 切换（课程/我的/设置），动态加载 |
+|:---|:---|
+| **路由** | 底部 Tabbar 切换（课程/我的/设置），LRU 缓存（最多3页） |
 | **主题** | 浅色/深色/跟随系统，使用 WeUI 变量，7种品牌颜色可选 |
 | **字体** | 6种字体可选：系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体/游趣体 |
 | **弹窗** | 半屏单选对话框、标准对话框、导出选择对话框，动画效果 |
-| **设置** | 语言切换、主题切换、字体切换、颜色切换（持久化到 localStorage） |
+| **设置** | 语言/主题/字体/颜色切换（持久化到 localStorage） |
 | **成绩导出** | 支持导出为 Excel 表格和 PNG 图片，中英文双语支持 |
 | **远程功能** | 插件式功能扩展，通过 API 动态加载 |
+| **公告系统** | 远程公告配置，用户协议后展示 |
+| **多端支持** | Web / 原生 App / 微信小程序 |
 
 ### 技术栈
 
@@ -116,13 +121,16 @@ xykcb/
 
 #### 1.2 App UA 解析 (`init.js`)
 - **功能**：检测 WebView 环境并解析 App 信息
-- **UA 格式**：`xykcb_app/260303 (Platform/Android; Channel/Xiaomi;)`
+- **UA 格式**：
+  - App: `xykcb_app/260303 (Platform/Android; Channel/Xiaomi;)`
+  - 小程序: 检测 `miniProgram` 标识
 - **解析内容**：
-  - 版本号 (version)：如 `260303`
-  - 平台 (platform)：如 `Android`、`iOS`
-  - 渠道 (channel)：如 `Xiaomi`、`AppStore`
+  - 应用类型 (app/miniapp/web)
+  - 版本号 (version)：如 `260315`
+  - 平台 (platform)：如 `Android`、`iOS`、`macOS`、`Windows`、`Linux`、`HarmonyOS`
+  - 渠道 (channel)：如 `Xiaomi`、`AppStore`、`WeChat`、`Web`
 - **存储键名**：
-  - `setting_is_app` - 是否为 App 环境 (`true`/`false`)
+  - `setting_app_type` - 应用类型 (`app`/`miniapp`/`web`)
   - `setting_app_version` - App 版本号
   - `setting_app_platform` - App 平台
   - `setting_app_channel` - App 渠道
@@ -130,7 +138,14 @@ xykcb/
 #### 1.3 主题管理 (`themes.js`)
 - **功能**：管理系统主题（浅色/深色/跟随系统）和品牌颜色
 - **主题模式**：`system`（跟随系统）、`light`（浅色）、`dark`（深色）
-- **品牌颜色**：7种颜色可选（苹果绿、活力黄、梦幻紫、冰晶蓝、薄纱粉、远山青、自由橙）
+- **品牌颜色**：7种颜色可选
+  - `appleGreen`（苹果绿）
+  - `vividYellow`（活力黄）
+  - `dreamyPurple`（梦幻紫）
+  - `iceBlue`（冰晶蓝）
+  - `sheerPink`（薄纱粉）
+  - `distantCyan`（远山青）
+  - `freedomOrange`（自由橙）
 - **API**：
   - `applyTheme(theme)` - 应用主题模式
   - `applyColor(color)` - 应用品牌颜色
@@ -150,6 +165,10 @@ xykcb/
 #### 1.5 欢迎页 (`/assets/subpages/welcome/welcome.js`)
 - **功能**：首次使用时显示欢迎页/用户协议，支持版本控制和语言选择
 - **流程**：检查 localStorage 中的版本号，首次访问或版本更新时显示欢迎页
+- **公告逻辑**：
+  - welcome 需要显示 → 用户点击已阅读并同意后调用公告
+  - welcome 不需要显示 → 直接调用公告
+- **API**：`initWelcome()` - 初始化欢迎页
 
 ### 2. 通用组件 (`/assets/common/`)
 
@@ -207,11 +226,32 @@ xykcb/
   - 事件委托处理选项点击
 - **API**：`showExportDialog({ title, options, onChange })`
 
-#### 2.6 课程数据解析器 (`course_parser.js`)
+#### 2.7 公告对话框 (`notice_dialog.js`)
+- **功能**：显示远程公告内容和通用导出选择
+- **远程配置地址**：`https://api.pylin.cn/xykcb_notice.json`
+- **配置格式**：
+  ```json
+  {
+    "enabled": true,
+    "latest": 260315,
+    "title": "公告标题",
+    "content": "公告内容"
+  }
+  ```
+- **API**：
+  - `initNotice()` - 初始化并加载远程公告
+  - `showNotice(title, content, maskClosable, onClose)` - 显示公告弹窗
+  - `showExportDialog({ title, options, onChange, maskClosable })` - 显示导出选择
+
+#### 2.8 课程数据解析器 (`course_parser.js`)
 - **功能**：解析和管理课程数据
 - **加载模式**：`local`（本地存储）、`online`（在线加载）、`merge`（合并加载）
+- **数据处理**：
+  - 重复 ID 课程智能合并
+  - 按周次/日期查询课程
+  - 课程搜索（名称/地点/教师）
 - **API**：
-  - `loadCourse(url, mode)` - 加载课程数据
+  - `loadCourse(mode)` - 加载课程数据
   - `getAvailableSemesters()` - 获取所有可用学期
   - `getSemesterConfig(semesterId)` - 获取学期配置
   - `getCourses(semesterId)` - 获取学期课程
@@ -243,7 +283,7 @@ xykcb/
   - 语言切换（中文/英文）
   - 主题切换（跟随系统/浅色/深色）
   - 字体切换（系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体/游趣体）
-  - 品牌颜色选择（7种颜色：苹果绿、活力黄、梦幻紫、冰晶蓝、薄纱粉、远山青、自由橙）
+  - 品牌颜色选择（7种颜色）
   - 周末显示开关
   - 教师显示开关
   - 边框显示开关
@@ -289,11 +329,11 @@ xykcb/
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  2. 执行 init.js（初始化入口模块）                            │
-│     ├─ UA 解析       → 检测 App 环境并解析版本/平台/渠道    │
+│     ├─ UA 解析       → 检测 App/小程序/Web 环境            │
 │     ├─ initFont()    → 加载保存的字体（按需显示 toast）     │
 │     ├─ initTheme()   → 应用保存的主题和颜色                 │
 │     ├─ initLanguage()→ 加载保存的语言包                     │
-│     └─ initWelcome() → 检查并显示欢迎页                      │
+│     └─ initWelcome() → 检查欢迎页版本                        │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -311,16 +351,25 @@ xykcb/
 │     - 显示协议内容 overlay                                   │
 │     - 用户选择语言/同意协议后                                │
 │     - 保存版本号到 localStorage                             │
-│     - 隐藏 overlay                                          │
+│     - 隐藏 overlay → 调用 initNotice()                      │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼ (欢迎页不需要显示时直接执行)
+┌─────────────────────────────────────────────────────────────┐
+│  5. 公告流程                                                │
+│     - fetch 远程公告配置                                     │
+│     - 检查是否需要显示（enabled + latest 版本）              │
+│     - 显示公告弹窗                                           │
+│     - 用户关闭后保存已读版本                                 │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  5. 课程页面加载流程                                         │
+│  6. 课程页面加载流程                                         │
 │     - fetch schedule.html                                   │
 │     - translatePage() 翻译页面                               │
 │     - loadCourse() 加载课程数据 JSON                         │
-│     - getCurrentSemesterAndWeek() 获取当前学期和周次          │
+│     - getCurrentSemesterAndWeek() 获取当前学期和周次         │
 │     - renderSchedule() 渲染课程视图                         │
 └─────────────────────────────────────────────────────────────┘
     │
@@ -339,7 +388,7 @@ switchPage(pageName)
     ├─ 更新 current 状态
     ├─ updateTabbar() 更新底部导航高亮
     ├─ render() 加载页面
-    │   ├─ 从缓存获取或动态 import(pageLoader)
+    │   ├─ 从 LRU 缓存获取或动态 import(pageLoader)
     │   ├─ 清空 page-container
     │   └─ 调用页面 load(container) 方法
     │
@@ -487,7 +536,7 @@ window.addEventListener('login-success', async () => {
 ### 数据存储
 
 | 键名 | 用途 |
-|------|------|
+|:---|:---|
 | `login_user` | 当前登录用户信息 |
 | `course_data` | 课程数据缓存 |
 | `setting_language` | 语言设置 |
@@ -498,11 +547,11 @@ window.addEventListener('login-success', async () => {
 | `setting_showTeacher` | 显示教师 |
 | `setting_showBorder` | 显示边框 |
 | `localWelcomeVersion` | 欢迎页版本 |
-| `setting_is_app` | 是否为 App 环境 |
+| `notice_latest` | 公告已读版本 |
+| `setting_app_type` | 应用类型 (app/miniapp/web) |
 | `setting_app_version` | App 版本号 |
 | `setting_app_platform` | App 平台 (Android/iOS) |
 | `setting_app_channel` | App 渠道 |
-| `setting_user_agent` | 浏览器 User-Agent |
 
 ### 设置变更流程
 
@@ -569,4 +618,23 @@ translatePage(value, container)
     ├─ 查找所有 [data-i18n] 元素
     ├─ 从 langData[value][key] 获取翻译
     └─ 更新元素文本/占位符
+```
+
+### 公告数据流
+
+```
+远程公告配置文件 (xykcb_notice.json)
+    │
+    ▼
+initNotice() → notice_dialog.js
+    │
+    ├─ fetch 远程配置
+    ├─ 检查 enabled 开关
+    └─ 比较本地版本 (notice_latest)
+    │
+    ▼
+showNotice() 显示公告弹窗
+    │
+    ├─ 用户关闭弹窗
+    └─ 保存最新版本到 localStorage
 ```
