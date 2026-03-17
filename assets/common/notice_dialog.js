@@ -1,5 +1,6 @@
 // 远程公告配置地址
-const NOTICE_API_URL = 'https://api.pylin.cn/xykcb_notice.json';
+import { API_CONFIG } from '/assets/common/api.js';
+const NOTICE_API_URL = API_CONFIG.NOTICE_API_URL;
 
 const STYLES = `
 .dialog-wrap { position: fixed; inset: 0; z-index: 11111; pointer-events: none; }

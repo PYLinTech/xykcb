@@ -2,10 +2,11 @@ import { initFont } from '/assets/init/fonts.js';
 import { initTheme } from '/assets/init/themes.js';
 import { initLanguage } from '/assets/init/languages.js';
 import { initWelcome } from '/assets/subpages/welcome/welcome.js';
+import { API_CONFIG } from '/assets/common/api.js';
 
 // 解析 App UA: xykcb_app/260303 (Platform/Android; Channel/Xiaomi;) 或 miniProgram
 const ua = navigator.userAgent;
-const webVersion = '260315';
+const webVersion = API_CONFIG.WEB_VERSION;
 
 // 解析操作系统: Android/iPhone(iOS)/Mac/macOS/Windows/Linux/HarmonyOS
 const platformMap = { 'Android': 'Android', 'iPhone': 'iOS', 'iPad': 'iOS', 'Mac': 'macOS', 'Windows': 'Windows', 'Linux': 'Linux', 'HarmonyOS': 'HarmonyOS' };

@@ -126,7 +126,7 @@ xykcb/
   - 小程序: 检测 `miniProgram` 标识
 - **解析内容**：
   - 应用类型 (app/miniapp/web)
-  - 版本号 (version)：如 `260315`
+  - 版本号 (version)：如 `2603171520`
   - 平台 (platform)：如 `Android`、`iOS`、`macOS`、`Windows`、`Linux`、`HarmonyOS`
   - 渠道 (channel)：如 `Xiaomi`、`AppStore`、`WeChat`、`Web`
 - **存储键名**：
@@ -233,7 +233,7 @@ xykcb/
   ```json
   {
     "enabled": true,
-    "latest": 260315,
+    "latest": 2603171520,
     "title": "公告标题",
     "content": "公告内容"
   }

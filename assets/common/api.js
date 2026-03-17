@@ -1,33 +1,35 @@
 // API 地址统一管理
 
-const BASE_URL = 'https://api.pylin.cn/xykcb';
-const CDN_URL = '/libraries';
-
-// 导出 BASE_URL 供其他模块读取
-export const API_CONFIG = {
-  BASE_URL,
-  CDN_URL
+const CONFIG = {
+  // API 基础地址
+  BASE_URL: 'https://api.pylin.cn/xykcb',
+  // CDN 地址
+  CDN_URL: '/libraries',
+  // Web/小程序版本号
+  WEB_VERSION: '2603171520',
+  // 外部跳转链接
+  EXIT_URL: 'https://www.pylin.cn',
+  // 公告配置地址
+  NOTICE_API_URL: 'https://api.pylin.cn/xykcb_notice.json',
+  // 请求超时时间
+  TIMEOUT: 30000
 };
 
-export const API = {
-  // 获取支持的学校列表
-  getSupportSchool: `${BASE_URL}/get-support-school`,
-
-  // 获取课程数据
-  getCourseData: `${BASE_URL}/get-course-data`,
-
-  // 获取学校支持的功能列表
-  getSupportFunction: (school) => `${BASE_URL}/get-support-function?school=${school}`,
-
-  // 字体CDN
-  fontUrl: (fileName) => `${CDN_URL}/fonts/${fileName}`
+// API 接口地址
+const API = {
+  getSupportSchool: `${CONFIG.BASE_URL}/get-support-school`,
+  getCourseData: `${CONFIG.BASE_URL}/get-course-data`,
+  getSupportFunction: (school) => `${CONFIG.BASE_URL}/get-support-function?school=${school}`,
+  fontUrl: (fileName) => `${CONFIG.CDN_URL}/fonts/${fileName}`
 };
 
 // 带超时的 fetch
-const TIMEOUT = 30000;
 export const fetchWithTimeout = (url, options = {}) => {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT);
+  const timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timeout));
 };
+
+export const API_CONFIG = CONFIG;
+export { API };

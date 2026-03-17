@@ -2,6 +2,7 @@ import { showOverlay, hideOverlay } from '/index.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { getCurrentLang } from '/assets/init/languages.js';
 import { initNotice } from '/assets/common/notice_dialog.js';
+import { API_CONFIG } from '/assets/common/api.js';
 
 const welcomeVersion = 260209;
 
@@ -37,7 +38,7 @@ function agree() {
 
 function disagree() {
   console.log('xykcb:exit');
-  window.location.href = 'https://www.pylin.cn';
+  window.location.href = API_CONFIG.EXIT_URL;
 }
 
 function showLanguageSelector() {
