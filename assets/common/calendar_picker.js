@@ -85,7 +85,7 @@ const injectCSS = () => {
 };
 
 const CONFIG = {
-  animDuration: 300,
+  animDuration: 240,
   weekDayKeys: ['weekday1', 'weekday2', 'weekday3', 'weekday4', 'weekday5', 'weekday6', 'weekday7'],
 };
 

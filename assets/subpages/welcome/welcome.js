@@ -33,7 +33,8 @@ function agree() {
   localStorage.setItem('localWelcomeVersion', welcomeVersion);
   hideOverlay();
   // 用户已阅读并同意后，调用公告
-  initNotice();
+  // 延迟 240ms 与 overlay 关闭动画同步
+  setTimeout(initNotice, 240);
 }
 
 function disagree() {

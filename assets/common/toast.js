@@ -7,8 +7,8 @@ let hideTimer = null;
 // Toast 配置
 const TOAST_CONFIG = {
     zIndex: 10000,
-    defaultDuration: 2000,
-    fadeDuration: 200
+    defaultDuration: 1200,
+    fadeDuration: 120
 };
 
 // Toast 图标配置

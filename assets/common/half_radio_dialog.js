@@ -43,7 +43,7 @@ const HalfRadioDialog = {
       // 强制重绘
       el.offsetHeight;
       requestAnimationFrame(() => {
-        el.style.transition = `${prop} 0.3s`;
+        el.style.transition = `${prop} 0.24s`;
         el.style[prop] = end;
       });
     };
@@ -54,7 +54,7 @@ const HalfRadioDialog = {
     const close = () => {
       animate(dialog, 'transform', 'translateY(0)', 'translateY(100%)');
       animate(mask, 'opacity', '1', '0');
-      setTimeout(() => wrap.remove(), 300);
+      setTimeout(() => wrap.remove(), 240);
     };
 
     mask.addEventListener('click', close);

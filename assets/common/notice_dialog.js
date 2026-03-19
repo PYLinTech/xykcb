@@ -4,9 +4,9 @@ const NOTICE_API_URL = API_CONFIG.NOTICE_API_URL;
 
 const STYLES = `
 .dialog-wrap { position: fixed; inset: 0; z-index: 11111; pointer-events: none; }
-.dialog-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.2s; pointer-events: auto; }
+.dialog-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.24s; pointer-events: auto; }
 .dialog-mask.active { opacity: 1; }
-.dialog-actions { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: var(--weui-BG-1); border-radius: 12px; padding: 20px; min-width: 240px; max-height: 80vh; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: auto; }
+.dialog-actions { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: var(--weui-BG-1); border-radius: 12px; padding: 20px; min-width: 240px; max-height: 80vh; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.24s, transform 0.24s; pointer-events: auto; }
 .dialog-actions.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .dialog-header { position: relative; font-size: 16px; color: var(--weui-FG-0); margin-bottom: 16px; font-weight: 500; flex-shrink: 0; }
 .dialog-close { position: absolute; right: 0; top: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; color: var(--weui-FG-1); }
@@ -39,12 +39,18 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
     document.body.appendChild(wrap);
 
     const [mask, actions, closeBtn] = wrap.querySelectorAll('.dialog-mask, .dialog-actions, .dialog-close');
-    requestAnimationFrame(() => mask.classList.add('active') || actions.classList.add('active'));
+
+    // 强制重绘确保样式应用后再触发动画
+    wrap.offsetHeight;
+    requestAnimationFrame(() => {
+        mask.classList.add('active');
+        actions.classList.add('active');
+    });
 
     const close = () => {
         mask.classList.remove('active');
         actions.classList.remove('active');
-        setTimeout(() => wrap.remove() || onClose(), 200);
+        setTimeout(() => wrap.remove() || onClose(), 240);
     };
 
     closeBtn.onclick = close;

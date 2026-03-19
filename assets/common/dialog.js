@@ -35,7 +35,7 @@ const Dialog = {
       </div>
     `;
     // 初始状态：透明、过渡、层级
-    wrap.style.cssText = 'position: fixed; inset: 0; opacity: 0; transition: opacity 0.2s; z-index: 5000;';
+    wrap.style.cssText = 'position: fixed; inset: 0; opacity: 0; transition: opacity 0.12s; z-index: 5000;';
     document.body.appendChild(wrap);
 
     const hide = (index = -1) => {
@@ -43,7 +43,7 @@ const Dialog = {
       setTimeout(() => {
         wrap.remove();
         onClose?.(index);
-      }, 200);
+      }, 120);
     };
 
     // 淡入显示
