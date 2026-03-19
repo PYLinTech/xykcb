@@ -24,7 +24,7 @@
             exporting: '导出中...', exportFailed: '导出失败', noDataExport: '暂无数据可导出',
             allSemesters: '全部学期', selectSemester: '选择学期', fetchFailed: '获取培养计划失败',
             noData: '暂无培养计划数据', noDataSemester: '该学期暂无课程', loadFailed: '加载失败: ',
-            totalCredits: '总学分', export: '导出', no: '编号：', credit: '学分：',
+            totalCredits: '总学分', export: '导出', no: '编号：', credit: '学分：', creditUnit: '学分',
             totalHours: '总学时：', evaluationMode: '考核方式：', courseAttr: '课程属性：',
             courseNature: '课程性质：', courseUnits: '开课单位：', semester: '学期',
             semesterN: '第{n}学期', required: '必修', limited: '限选', elective: '任选',
@@ -37,7 +37,7 @@
             exporting: 'Exporting...', exportFailed: 'Export failed', noDataExport: 'No data to export',
             allSemesters: 'All Semesters', selectSemester: 'Select Semester', fetchFailed: 'Failed to fetch major plan',
             noData: 'No major plan data', noDataSemester: 'No courses this semester', loadFailed: 'Load failed: ',
-            totalCredits: 'Total Credits', export: 'Export', no: 'No: ', credit: 'Credit: ',
+            totalCredits: 'Total Credits', export: 'Export', no: 'No: ', credit: 'Credit: ', creditUnit: 'Credit',
             totalHours: 'Total Hours: ', evaluationMode: 'Evaluation: ', courseAttr: 'Attr: ',
             courseNature: 'Nature: ', courseUnits: 'Department: ', semester: 'Semester',
             semesterN: 'Semester {n}', required: 'Required', limited: 'Limited', elective: 'Elective',
@@ -216,7 +216,7 @@
             html += `<div class="grade-card course-bg-${i % 10}">
                 <span class="grade-badge badge-${courseType}">${typeLabel}</span>
                 <div class="grade-main"><div class="grade-header"><span class="grade-name">${c.courseName}</span></div>
-                <div class="grade-body"><div class="grade-left"><span class="grade-score">${c.credit}</span></div>
+                <div class="grade-body"><div class="grade-left"><span class="grade-score">${c.credit}</span><small style="font-size:12px">${t('creditUnit')}</small></div>
                 <div class="grade-right"><div class="grade-info">
                     <span class="grade-info-item">${t('no')}${c.courseCode}</span>
                     <span class="grade-info-item">${t('totalHours')}${c.totalHours}</span>
@@ -282,7 +282,7 @@
     .grade-body { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: auto; }
     .grade-left { flex-shrink: 0; padding-left: 10px; }
     .grade-score { font-size: 20px; font-weight: 700; color: var(--weui-FG-0); line-height: 1; }
-    .grade-right { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .grade-right { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     .grade-info { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
     .grade-info-item { font-size: 12px; color: var(--weui-FG-0); padding: 2px 6px; }
     .error { text-align: center; padding: 40px; color: var(--weui-FG-1); }
