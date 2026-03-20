@@ -1,23 +1,24 @@
 // 半屏单选弹窗
 const HalfRadioDialog = {
   show: function ({ title, options, selected, onChange }) {
-    document.getElementById('halfRadioDialogWrap')?.remove();
+    const DIALOG_ID = 'halfRadioDialogWrap';
+    document.getElementById(DIALOG_ID)?.remove();
 
-    const items = options.map(opt =>
-      `<label class="weui-cell weui-cell_active weui-check__label" style="background-color: var(--weui-BG-1)">
+    // 生成选项列表
+    const items = options.map(opt => `
+      <label class="weui-cell weui-cell_active weui-check__label" style="background-color: var(--weui-BG-1)">
         <div class="weui-cell__bd"><p>${opt.label}</p></div>
         <div class="weui-cell__ft">
-          <input type="radio" class="weui-check" name="half_radio" value="${opt.value}"${opt.value == selected ? ' checked' : ''}>
+          <input type="radio" class="weui-check" name="half_radio" value="${opt.value}"${opt.value === selected ? ' checked' : ''}>
           <span class="weui-icon-checked"></span>
         </div>
       </label>`
     ).join('');
 
+    // 创建弹窗容器
     const wrap = document.createElement('div');
-    wrap.id = 'halfRadioDialogWrap';
-    wrap.style.position = 'absolute';
-    wrap.style.inset = '0';
-    wrap.style.zIndex = '10000';
+    wrap.id = DIALOG_ID;
+    wrap.style.cssText = 'position: absolute; inset: 0; z-index: 10000;';
     wrap.innerHTML = `
       <div class="weui-mask"></div>
       <div class="weui-half-screen-dialog" style="background-color: var(--weui-BG-1)">
@@ -34,41 +35,59 @@ const HalfRadioDialog = {
     `;
     document.body.appendChild(wrap);
 
+    // 缓存 DOM 引用
     const dialog = wrap.querySelector('.weui-half-screen-dialog');
     const mask = wrap.querySelector('.weui-mask');
+    const bd = wrap.querySelector('.weui-half-screen-dialog__bd');
+    const closeBtn = wrap.querySelector('#js_half_dialog_close');
 
-    const animate = (el, prop, start, end) => {
-      el.style.transition = 'none';
-      el.style[prop] = start;
-      // 强制重绘
-      el.offsetHeight;
+    // 滑入动画
+    dialog.style.transform = 'translateY(100%)';
+    dialog.style.transition = 'transform 0.24s';
+    mask.style.opacity = '0';
+    mask.style.transition = 'opacity 0.24s';
+
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        el.style.transition = `${prop} 0.24s`;
-        el.style[prop] = end;
+        dialog.style.transform = 'translateY(0)';
+        mask.style.opacity = '1';
       });
-    };
+    });
 
-    animate(dialog, 'transform', 'translateY(100%)', 'translateY(0)');
-    animate(mask, 'opacity', '0', '1');
+    // 滚动到选中项
+    if (selected) {
+      setTimeout(() => {
+        const checkedInput = wrap.querySelector('.weui-check:checked');
+        if (checkedInput) {
+          const label = checkedInput.closest('.weui-check__label');
+          if (label) {
+            const labelTop = label.offsetTop;
+            const labelHeight = label.offsetHeight;
+            const bdHeight = bd.clientHeight;
+            bd.scrollTop = Math.max(0, labelTop - (bdHeight - labelHeight) / 2);
+          }
+        }
+      }, 0);
+    }
 
+    // 关闭弹窗
     const close = () => {
-      animate(dialog, 'transform', 'translateY(0)', 'translateY(100%)');
-      animate(mask, 'opacity', '1', '0');
+      dialog.style.transform = 'translateY(100%)';
+      mask.style.opacity = '0';
       setTimeout(() => wrap.remove(), 240);
     };
 
+    // 绑定事件
     mask.addEventListener('click', close);
-    wrap.querySelector('#js_half_dialog_close').addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
 
     wrap.addEventListener('click', e => {
       const label = e.target.closest('.weui-check__label');
       if (label) {
         const radio = label.querySelector('.weui-check');
-        if (radio) {
-          radio.checked = true;
-          onChange?.(radio.value);
-          close();
-        }
+        radio.checked = true;
+        onChange?.(radio.value);
+        close();
       }
     });
   }

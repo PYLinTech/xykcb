@@ -933,12 +933,12 @@ export async function load(container) {
                 if (weekOptionsCacheKey !== cacheKey) {
                     weekOptionsCacheKey = cacheKey;
                     weekOptionsCache = [
-                        { value: 0, label: getI18n('schedule', 'allWeek') },
+                        { value: '0', label: getI18n('schedule', 'allWeek') },
                         ...Array.from({ length: totalWeeks }, (_, i) => {
                             const weekNum = i + 1;
                             const isCurrentWeek = currentSemesterAndWeek?.semesterId === currentSemesterId && currentSemesterAndWeek?.week === weekNum;
                             return {
-                                value: weekNum,
+                                value: String(weekNum),
                                 label: `${getI18n('schedule', 'weekN').replace('{n}', weekNum)}${isCurrentWeek ? getI18n('schedule', 'currentWeekSuffix') : ''}`
                             };
                         })
@@ -948,7 +948,7 @@ export async function load(container) {
                 HalfRadioDialog.show({
                     title: getI18n('schedule', 'selectWeek'),
                     options: weekOptionsCache,
-                    selected: currentWeek,
+                    selected: String(currentWeek),
                     onChange: (value) => {
                         currentWeek = Number(value);
                         // 切换周次后需要更新缓存
