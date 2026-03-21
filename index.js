@@ -4,6 +4,12 @@ const pageLoaders = {
   settings: () => import('/assets/subpages/settings/settings.js').then(m => m.load)
 };
 
+const tabIconMap = {
+  schedule: { line: 'ri-calendar-line', fill: 'ri-calendar-fill' },
+  mine: { line: 'ri-user-line', fill: 'ri-user-fill' },
+  settings: { line: 'ri-settings-line', fill: 'ri-settings-fill' }
+};
+
 const MAX_CACHE_SIZE = 3; // 最多缓存 3 个页面
 const cache = new Map();
 let current = null;
@@ -42,7 +48,13 @@ async function render(pageName) {
 
 function updateTabbar(pageName) {
   tabbar.querySelectorAll('.weui-tabbar__item').forEach(item => {
-    item.classList.toggle('weui-bar__item_on', item.dataset.page === pageName);
+    const isActive = item.dataset.page === pageName;
+    item.classList.toggle('weui-bar__item_on', isActive);
+    const iconEl = item.querySelector('.weui-tabbar__icon i');
+    const iconConfig = tabIconMap[item.dataset.page];
+    if (iconEl && iconConfig) {
+      iconEl.className = isActive ? iconConfig.fill : iconConfig.line;
+    }
   });
 }
 
