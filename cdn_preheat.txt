@@ -12,6 +12,7 @@ https://xykcb.pylin.cn/assets/init/fonts.js
 https://xykcb.pylin.cn/assets/init/init.js
 https://xykcb.pylin.cn/assets/init/languages.js
 https://xykcb.pylin.cn/assets/init/themes.js
+https://xykcb.pylin.cn/assets/init/wedata.js
 https://xykcb.pylin.cn/assets/languages/en/agreement.html
 https://xykcb.pylin.cn/assets/languages/en/privacy.html
 https://xykcb.pylin.cn/assets/languages/en/en.json
