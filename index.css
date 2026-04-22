@@ -66,6 +66,40 @@ body {
     }
 }
 
+/* 底部导航栏按钮 */
+.weui-tabbar__item {
+    cursor: pointer;
+}
+
+.weui-tabbar__item:hover {
+    cursor: pointer;
+}
+
+/* 全局按钮 */
+.weui-btn {
+    cursor: pointer;
+}
+
+/* 全局链接 */
+a {
+    cursor: pointer;
+}
+
+/* 开关选择框 */
+.weui-switch-cp__box {
+    cursor: pointer;
+}
+
+/* 单元格 */
+.weui-cell {
+    cursor: pointer;
+}
+
+/* 输入框 */
+.weui-cell input {
+    cursor: text;
+}
+
 /* 覆盖浏览器自动填充背景色 */
 input:-webkit-autofill {
     background-color: transparent !important;
