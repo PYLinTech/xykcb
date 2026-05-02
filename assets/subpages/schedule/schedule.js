@@ -109,6 +109,9 @@ function renderDayView(container) {
     container.innerHTML = '';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
+    container.style.height = '100%';
+    container.style.minHeight = '0';
+    container.style.overflow = 'hidden';
 
     // 初始化当前日期
     if (!currentDay) {
@@ -168,7 +171,7 @@ function renderDayView(container) {
     // 创建课程列表容器
     const courseList = document.createElement('div');
     courseList.id = 'js_dayview_courses';
-    courseList.style.cssText = 'flex: 1; overflow-y: auto; padding: 8px;';
+    courseList.style.cssText = 'flex: 1; min-height: 0; overflow-y: auto; padding: 8px;';
     container.appendChild(courseList);
 
     // 渲染课程
@@ -479,6 +482,8 @@ function renderWeekView(container) {
 
     container.style.display = 'grid';
     container.style.height = '100%';
+    container.style.minHeight = '0';
+    container.style.overflow = 'auto';
     container.style.width = '100%';
 
     // 根据设置确定列数
@@ -670,11 +675,14 @@ function renderSemesterView(container) {
     container.innerHTML = '';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
+    container.style.height = '100%';
+    container.style.minHeight = '0';
+    container.style.overflow = 'hidden';
 
     // 创建课程卡片容器
     const courseList = document.createElement('div');
     courseList.id = 'js_semesterview_courses';
-    courseList.style.cssText = 'flex: 1; overflow-y: auto; padding: 12px;';
+    courseList.style.cssText = 'flex: 1; min-height: 0; overflow-y: auto; padding: 12px;';
     container.appendChild(courseList);
 
     // 获取所有课程数据

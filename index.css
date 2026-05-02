@@ -1,3 +1,9 @@
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     background-color: var(--weui-BG-1);
 }
@@ -11,6 +17,7 @@ body {
 
 #page-container {
     flex: 1;
+    min-height: 0;
     width: 100%;
     overflow: auto;
     background-color: var(--weui-BG-0);
@@ -22,6 +29,7 @@ body {
     inset: 0;
     z-index: 9999;
     overflow: auto;
+    background-color: var(--weui-BG-0);
     opacity: 0;
     visibility: hidden;
     transform: translateY(100%);
@@ -34,8 +42,13 @@ body {
     transform: translateY(0);
 }
 
+.overlay.show + #app #page-container {
+    overflow: hidden;
+}
+
 /* 统一滚动条样式 */
 #page-container,
+#js_schedule_content,
 .overlay,
 .overlay-content,
 .weui-half-screen-dialog__bd {
@@ -44,6 +57,7 @@ body {
 }
 
 #page-container::-webkit-scrollbar,
+#js_schedule_content::-webkit-scrollbar,
 .overlay::-webkit-scrollbar,
 .overlay-content::-webkit-scrollbar,
 .weui-half-screen-dialog__bd::-webkit-scrollbar {
@@ -52,6 +66,7 @@ body {
 }
 
 #page-container::-webkit-scrollbar-track,
+#js_schedule_content::-webkit-scrollbar-track,
 .overlay::-webkit-scrollbar-track,
 .overlay-content::-webkit-scrollbar-track,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-track {
@@ -59,6 +74,7 @@ body {
 }
 
 #page-container::-webkit-scrollbar-thumb,
+#js_schedule_content::-webkit-scrollbar-thumb,
 .overlay::-webkit-scrollbar-thumb,
 .overlay-content::-webkit-scrollbar-thumb,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-thumb {
@@ -69,6 +85,7 @@ body {
 }
 
 #page-container::-webkit-scrollbar-thumb:hover,
+#js_schedule_content::-webkit-scrollbar-thumb:hover,
 .overlay::-webkit-scrollbar-thumb:hover,
 .overlay-content::-webkit-scrollbar-thumb:hover,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-thumb:hover {

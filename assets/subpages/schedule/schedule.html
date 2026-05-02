@@ -38,8 +38,8 @@
 }
 </style>
 
-<div style="display: flex; flex-direction: column; min-height: 100%;">
-    <div style="background-color: var(--weui-BG-1); height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: sticky; top: 0; z-index: 1; flex-shrink: 0;">
+<div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+    <div style="background-color: var(--weui-BG-1); height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; z-index: 1; flex-shrink: 0;">
         <a id="js_current_semester" class="weui-btn weui-btn_default" style="min-width: 0; max-width: none; margin: 0; padding: 3px 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; overflow: hidden;">
             <span data-i18n="currentSemester" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">当前学期</span> <i class="ri-arrow-down-s-line" style="font-size: 12px;"></i>
         </a>
@@ -49,11 +49,11 @@
         <a id="js_current_week" class="weui-btn weui-btn_default" style="visibility: hidden; min-width: 0; max-width: none; margin: 0; padding: 3px 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; overflow: hidden;">
             <span id="js_current_week_label" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">第N周</span> <i class="ri-arrow-down-s-line" style="font-size: 12px;"></i>
         </a>
-        <i id="js_refresh" class="tap-active" style="background-color: var(--weui-FG-5); color: var(--weui-FG-0); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; margin-left: auto; font-size: 18px; cursor: pointer;">
+        <i id="js_refresh" class="tap-active" style="background-color: var(--weui-FG-5); color: var(--weui-FG-0); border-radius: 50%; width: 30px; height: 30px; flex: 0 0 30px; display: flex; align-items: center; justify-content: center; margin-left: auto; font-size: 18px; cursor: pointer; box-sizing: border-box;">
             <span class="refresh-icon" style="display: flex; align-items: center; justify-content: center;">
                 <i class="ri-refresh-line"></i>
             </span>
         </i>
     </div>
-    <div id="js_schedule_content" style="flex: 1;"></div>
+    <div id="js_schedule_content" style="flex: 1; min-height: 0; overflow: hidden;"></div>
 </div>
