@@ -51,6 +51,7 @@ body {
 #js_schedule_content,
 .overlay,
 .overlay-content,
+.weui-dialog_scrollable .weui-dialog__bd,
 .weui-half-screen-dialog__bd {
     scrollbar-width: thin;
     scrollbar-color: var(--weui-FG-3) transparent;
@@ -60,6 +61,7 @@ body {
 #js_schedule_content::-webkit-scrollbar,
 .overlay::-webkit-scrollbar,
 .overlay-content::-webkit-scrollbar,
+.weui-dialog_scrollable .weui-dialog__bd::-webkit-scrollbar,
 .weui-half-screen-dialog__bd::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -69,6 +71,7 @@ body {
 #js_schedule_content::-webkit-scrollbar-track,
 .overlay::-webkit-scrollbar-track,
 .overlay-content::-webkit-scrollbar-track,
+.weui-dialog_scrollable .weui-dialog__bd::-webkit-scrollbar-track,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-track {
     background: transparent;
 }
@@ -77,6 +80,7 @@ body {
 #js_schedule_content::-webkit-scrollbar-thumb,
 .overlay::-webkit-scrollbar-thumb,
 .overlay-content::-webkit-scrollbar-thumb,
+.weui-dialog_scrollable .weui-dialog__bd::-webkit-scrollbar-thumb,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-thumb {
     background-color: var(--weui-FG-3);
     border-radius: 999px;
@@ -88,6 +92,7 @@ body {
 #js_schedule_content::-webkit-scrollbar-thumb:hover,
 .overlay::-webkit-scrollbar-thumb:hover,
 .overlay-content::-webkit-scrollbar-thumb:hover,
+.weui-dialog_scrollable .weui-dialog__bd::-webkit-scrollbar-thumb:hover,
 .weui-half-screen-dialog__bd::-webkit-scrollbar-thumb:hover {
     background-color: var(--weui-FG-2);
 }

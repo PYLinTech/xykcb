@@ -27,8 +27,9 @@ const Dialog = {
     const wrap = document.createElement('div');
     wrap.id = 'weuiDialogWrap';
     wrap.innerHTML = `
+      <style>.weui-dialog_scrollable{display:flex;flex-direction:column;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)}.weui-dialog_scrollable .weui-dialog__bd{min-height:0;overflow-y:auto;margin-bottom:0}.weui-dialog_scrollable .weui-dialog__bd>:last-child{margin-bottom:16px}</style>
       <div class="weui-mask"></div>
-      <div class="weui-dialog${config.horizontalBtns ? ' weui-dialog_btn-wrap' : ''}">
+      <div class="weui-dialog weui-dialog_scrollable${config.horizontalBtns ? ' weui-dialog_btn-wrap' : ''}">
         ${config.hasTitle ? `<div class="weui-dialog__hd"><strong class="weui-dialog__title">${title}</strong></div>` : ''}
         <div class="weui-dialog__bd" style="display: block; justify-content: unset; align-items: unset; -webkit-box-pack: unset; -webkit-box-align: unset; flex-direction: unset; -webkit-flex-direction: unset;">${content}</div>
         <div class="weui-dialog__ft">${buttonsHtml}</div>
