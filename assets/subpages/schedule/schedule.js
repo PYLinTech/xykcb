@@ -422,6 +422,18 @@ function showCourseDetailDialog(courses) {
     });
 }
 
+function getSemesterCourseGroupKey(course) {
+    return course.rawId || course.id || `${course.name || ''}|${course.teacher || ''}`;
+}
+
+function pushUnique(list, value) {
+    if (value && !list.includes(value)) list.push(value);
+}
+
+function getFirstWeek(course) {
+    return Math.min(...(course.weeks || [Number.MAX_SAFE_INTEGER]));
+}
+
 // 周视图渲染
 function renderWeekView(container) {
     container.innerHTML = '';
@@ -653,6 +665,7 @@ function renderWeekView(container) {
     // 填充课程
     for (const [cellIndex, cellCourses] of cellCoursesMap) {
         const cell = cells[cellIndex];
+        cellCourses.sort((a, b) => getFirstWeek(a) - getFirstWeek(b));
         // 取第一个课程显示
         const course = cellCourses[0];
         // 如果有多个课程，显示红色三角形标记
@@ -731,10 +744,10 @@ function renderSemesterView(container) {
         return scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
     }
 
-    // 按课程名称+教师分组
+    // 服务端 id 已经是细分后的 hash，学期视图按 rawId 手动合并同一门课的不同安排。
     const courseGroupMap = new Map();
     for (const course of courses) {
-        const key = `${course.name}|${course.teacher || ''}`;
+        const key = getSemesterCourseGroupKey(course);
         if (!courseGroupMap.has(key)) {
             courseGroupMap.set(key, []);
         }
@@ -752,9 +765,9 @@ function renderSemesterView(container) {
         const weeks = [];
 
         for (const c of groupCourses) {
-            locations.push(c.location || '-');
-            times.push(formatCourseTime(c));
-            weeks.push(formatWeeks(c.weeks) || '-');
+            pushUnique(locations, c.location || '-');
+            pushUnique(times, formatCourseTime(c));
+            pushUnique(weeks, formatWeeks(c.weeks) || '-');
         }
 
         const locationStr = locations.join(' | ');

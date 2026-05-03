@@ -6,127 +6,6 @@
 let courseData = null;
 
 /**
- * 生成课程特征hash
- */
-function genCourseHash(course) {
-    const key = `${course.id}|${course.name || ''}|${course.location || ''}|${course.teacher || ''}`;
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-        hash = ((hash << 5) - hash) + key.charCodeAt(i);
-        hash |= 0;
-    }
-    return Math.abs(hash).toString(36);
-}
-
-/**
- * 处理重复ID课程 - 优化版本
- */
-function resolveDuplicateIds(semesterId) {
-    const courses = courseData?.[semesterId]?.courses;
-    if (!courses || courses.length === 0) return;
-
-    // 按ID分组
-    const idMap = new Map();
-    for (const course of courses) {
-        if (!idMap.has(course.id)) idMap.set(course.id, []);
-        idMap.get(course.id).push(course);
-    }
-
-    const processed = [];
-    for (const [id, group] of idMap) {
-        if (group.length === 1) {
-            processed.push(group[0]);
-        } else {
-            // 一级比对：名称、地点、教师 - 使用 Map 分类
-            const diffCourses = [];
-            const sameBasicCourses = [];
-            const base = group[0];
-            const baseKey = `${base.name}|${base.location}|${base.teacher}`;
-
-            for (let i = 1; i < group.length; i++) {
-                const c = group[i];
-                const key = `${c.name}|${c.location}|${c.teacher}`;
-                if (key === baseKey) {
-                    sameBasicCourses.push(c);
-                } else {
-                    diffCourses.push(c);
-                }
-            }
-
-            // 处理名称/地点/教师不同的课程 -> 重新生成ID
-            for (const c of diffCourses) {
-                c.id = genCourseHash(c);
-                processed.push(c);
-            }
-
-            // 处理名称/地点/教师相同的课程
-            if (sameBasicCourses.length === 0) {
-                processed.push(base);
-            } else {
-                // 按weeks分组 - 使用 Map 替代 JSON.stringify
-                const weeksMap = new Map();
-                const baseWeeksSet = new Set(base.weeks || []);
-                weeksMap.set(baseWeeksSet, [base]);
-
-                for (const c of sameBasicCourses) {
-                    const weeksSet = new Set(c.weeks || []);
-                    let found = false;
-                    for (const [existingKey, list] of weeksMap) {
-                        if (existingKey.size === weeksSet.size &&
-                            [...weeksSet].every(w => existingKey.has(w))) {
-                            list.push(c);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        weeksMap.set(weeksSet, [c]);
-                    }
-                }
-
-                // 处理每个 weeks 组
-                for (const [weeksSet, coursesGroup] of weeksMap) {
-                    const first = coursesGroup[0];
-                    if (coursesGroup.length === 1) {
-                        // 只有一个，且weeks与base不同 -> 重新生成ID
-                        const isSameWeeks = baseWeeksSet.size === weeksSet.size &&
-                            [...weeksSet].every(w => baseWeeksSet.has(w));
-                        if (!isSameWeeks) {
-                            first.id = genCourseHash(first);
-                        }
-                        processed.push(first);
-                    } else {
-                        // 多个weeks相同的课程 -> 合并schedule
-                        // 使用 Set 优化节次去重
-                        for (let i = 1; i < coursesGroup.length; i++) {
-                            const c = coursesGroup[i];
-                            for (const [day, sections] of Object.entries(c.schedule || {})) {
-                                if (!first.schedule[day]) {
-                                    first.schedule[day] = [];
-                                }
-                                const daySet = new Set(first.schedule[day]);
-                                for (const s of sections) {
-                                    if (!daySet.has(s)) {
-                                        first.schedule[day].push(s);
-                                        daySet.add(s);
-                                    }
-                                }
-                            }
-                            // 排序
-                            for (const day of Object.keys(first.schedule)) {
-                                first.schedule[day].sort((a, b) => a - b);
-                            }
-                        }
-                        processed.push(first);
-                    }
-                }
-            }
-        }
-    }
-    courseData[semesterId].courses = processed;
-}
-
-/**
  * 加载课程数据
  * @param {string} mode - 加载模式: local(本地存储), online(登录缓存), merge(合并加载)
  * @returns {Promise<boolean>} - 加载成功返回true，失败返回false
@@ -154,11 +33,6 @@ async function loadCourse(mode) {
             default:
                 console.error('Invalid mode:', mode);
                 return false;
-        }
-
-        // 处理每个学期的重复ID课程
-        for (const semesterId of Object.keys(courseData || {})) {
-            resolveDuplicateIds(semesterId);
         }
 
         return courseData && Object.keys(courseData).length > 0;
