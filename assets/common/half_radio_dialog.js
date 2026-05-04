@@ -14,6 +14,7 @@ const HalfRadioDialog = {
         </div>
       </label>`
     ).join('');
+    const scrollbarClass = options.length > 12 ? ' scrollbar-enabled' : '';
 
     // 创建弹窗容器
     const wrap = document.createElement('div');
@@ -21,7 +22,7 @@ const HalfRadioDialog = {
     wrap.style.cssText = 'position: absolute; inset: 0; z-index: 10000;';
     wrap.innerHTML = `
       <div class="weui-mask"></div>
-      <div class="weui-half-screen-dialog" style="background-color: var(--weui-BG-1)">
+      <div class="weui-half-screen-dialog${scrollbarClass}" style="background-color: var(--weui-BG-1)">
         <div class="weui-half-screen-dialog__hd">
           <div class="weui-half-screen-dialog__hd__main">
             <strong class="weui-half-screen-dialog__title">${title}</strong>

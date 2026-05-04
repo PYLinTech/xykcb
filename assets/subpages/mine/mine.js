@@ -63,7 +63,7 @@ async function loadFunctions(container) {
                             <span class="overlay-title">${title}</span>
                             <div class="overlay-close" id="overlayClose"><i class="ri-close-line"></i></div>
                         </div>
-                        <div class="overlay-content">${html}</div>
+                        <div class="overlay-content scrollbar-enabled">${html}</div>
                     </div>
                     <script>document.getElementById('overlayClose').onclick = window.hideOverlay;</script>`;
                 showOverlay(null, wrappedHtml);
