@@ -171,7 +171,7 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
     return normalized;
 
   } catch (error) {
-    if (showToast) toast.warn(getI18n('desc_key', '004'));
+    if (showToast) toast.warn(getI18n('desc_key', '000'));
     return null;
   }
 }

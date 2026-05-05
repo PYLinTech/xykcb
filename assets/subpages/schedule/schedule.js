@@ -169,6 +169,7 @@ const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
+const startupUpdateEnabled = () => getSetting('autoUpdate') === 'true';
 
 const getCourseColorIndex = (course) => {
     const name = course.name || '';
@@ -322,8 +323,6 @@ function renderDayViewCourses(container) {
         if (!savedUser || savedUser.isLoggedIn === false) {
             toast.warn(getI18n('login', 'errorNotLoggedIn'));
             loadLogin();
-        } else {
-            toast.warn(getI18n('schedule', 'loadCourseError'));
         }
         return;
     } else if (coursesResult === 'out') {
@@ -673,8 +672,6 @@ function renderSemesterView(container) {
         if (!savedUser || savedUser.isLoggedIn === false) {
             toast.warn(getI18n('login', 'errorNotLoggedIn'));
             loadLogin();
-        } else {
-            toast.warn(getI18n('schedule', 'loadCourseError'));
         }
         return;
     }
@@ -1407,14 +1404,19 @@ export async function load(container) {
     const isLoggedIn = savedUser?.isLoggedIn !== false;
 
     if (isLoggedIn && savedUser) {
-        await refreshCourseData();
-        const loaded = await loadCourse();
-        courseDataLoaded = !!loaded;
-        if (loaded) {
-            syncCurrentSemesterAndWeek();
-        } else {
-            toast.warn(getI18n('schedule', 'loadCourseError'));
+        if (startupUpdateEnabled()) {
+            await refreshCourseData();
         }
+
+        let loaded = await loadCourse();
+
+        if (!loaded && !startupUpdateEnabled()) {
+            await refreshCourseData();
+            loaded = await loadCourse();
+        }
+
+        courseDataLoaded = !!loaded;
+        if (loaded) syncCurrentSemesterAndWeek();
     } else {
         courseDataLoaded = false;
     }
@@ -1585,11 +1587,11 @@ export async function load(container) {
 
                     refreshScheduleView(container);
                 } else {
-                    toast.warn(getI18n('schedule', 'loadCourseError'));
+                    refreshScheduleView(container);
                 }
             } catch (error) {
                 console.error('Refresh error:', error);
-                toast.warn(getI18n('schedule', 'loadCourseError'));
+                refreshScheduleView(container);
             } finally {
                 isRefreshing = false;
             }
