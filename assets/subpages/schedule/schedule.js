@@ -169,7 +169,6 @@ const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
-const startupUpdateEnabled = () => getSetting('autoUpdate') === 'true';
 
 const getCourseColorIndex = (course) => {
     const name = course.name || '';
@@ -1404,29 +1403,15 @@ export async function load(container) {
     container.innerHTML = html;
     await translatePage('schedule', container);
 
-    const isFirstLoad = container.dataset.firstLoad === 'true';
-
     const savedUser = getSavedUser();
     const isLoggedIn = savedUser?.isLoggedIn !== false;
 
     if (isLoggedIn && savedUser) {
+        await refreshCourseData();
         const loaded = await loadCourse();
         courseDataLoaded = !!loaded;
         if (loaded) {
             syncCurrentSemesterAndWeek();
-            if (isFirstLoad && startupUpdateEnabled()) {
-                refreshCourseData().then(async (remoteUpdated) => {
-                    const loaded = await loadCourse();
-                    courseDataLoaded = !!loaded;
-
-                    if (remoteUpdated && loaded) {
-
-                        syncCurrentSemesterAndWeek();
-                        currentDay = null;
-                        refreshScheduleView(container);
-                    }
-                });
-            }
         } else {
             toast.warn(getI18n('schedule', 'loadCourseError'));
         }

@@ -21,9 +21,8 @@
     "001": "Missing required parameters",
     "002": "Unsupported school",
     "003": "Invalid account or password",
-    "004": "Login failed",
-    "005": "Method not allowed",
-    "006": "Internal server error"
+    "004": "Internal server error",
+    "005": "Too many requests, please try again later"
   },
   "index": {
     "xykcb": "Xiaoyu Schedule",

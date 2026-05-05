@@ -151,8 +151,9 @@ async function handleLogin() {
   }
 }
 
-async function fetchCourseData(school, account, password, loadingKey = 'toastLoginLoading', successKey = 'loginSuccess') {
-  toast.loading(getI18n('login', loadingKey));
+async function fetchCourseData(school, account, password, loadingKey = 'toastLoginLoading', successKey = 'loginSuccess', options = {}) {
+  const showToast = options.showToast !== false;
+  if (showToast) toast.loading(getI18n('login', loadingKey));
 
   try {
     const res = await fetchWithTimeout(`${API.getCourseData}?school=${school}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`);
@@ -160,29 +161,30 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
     const result = await res.json();
 
     if (!result.success || !result.data) {
-      const descKey = result.desc_key || '006';
-      toast.warn(getI18n('desc_key', descKey));
+      const descKey = result.desc_key || '004';
+      if (showToast) toast.warn(getI18n('desc_key', descKey));
       return null;
     }
 
     const normalized = parseCourseDataResponse(result.data);
-    toast.success(getI18n('login', successKey));
+    if (showToast) toast.success(getI18n('login', successKey));
     return normalized;
 
   } catch (error) {
-    toast.warn(getI18n('desc_key', '006'));
+    if (showToast) toast.warn(getI18n('desc_key', '004'));
     return null;
   }
 }
 
-export async function refreshCourseData() {
+export async function refreshCourseData(options = {}) {
+  const showToast = options.showToast !== false;
   const savedUser = getSavedUser();
   if (!savedUser?.school || !savedUser?.account || !savedUser?.password) {
-    toast.warn(getI18n('login', 'errorAccountRequired'));
+    if (showToast) toast.warn(getI18n('login', 'errorAccountRequired'));
     return false;
   }
 
-  const result = await fetchCourseData(savedUser.school, savedUser.account, savedUser.password, 'toastRefreshLoading', 'refreshSuccess');
+  const result = await fetchCourseData(savedUser.school, savedUser.account, savedUser.password, 'toastRefreshLoading', 'refreshSuccess', options);
   if (!result) return false;
 
   saveCourseData(result);
