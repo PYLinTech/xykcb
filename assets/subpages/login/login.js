@@ -3,6 +3,7 @@ import { toast, hideToast } from '/assets/common/toast.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { getI18n } from '/assets/init/languages.js';
 import { API, fetchWithTimeout } from '/assets/common/api.js';
+import { parseCourseDataResponse } from '/assets/common/course_data_adapter.js';
 
 const LOGIN_USER_KEY = 'login_user';
 const COURSE_DATA_KEY = 'course_data';
@@ -164,8 +165,9 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
       return null;
     }
 
+    const normalized = parseCourseDataResponse(result.data);
     toast.success(getI18n('login', successKey));
-    return result.data;
+    return normalized;
 
   } catch (error) {
     toast.warn(getI18n('desc_key', '006'));
@@ -177,11 +179,12 @@ export async function refreshCourseData() {
   const savedUser = getSavedUser();
   if (!savedUser?.school || !savedUser?.account || !savedUser?.password) {
     toast.warn(getI18n('login', 'errorAccountRequired'));
-    return;
+    return false;
   }
 
   const result = await fetchCourseData(savedUser.school, savedUser.account, savedUser.password, 'toastRefreshLoading', 'refreshSuccess');
-  if (result) {
-    saveCourseData(result);
-  }
+  if (!result) return false;
+
+  saveCourseData(result);
+  return true;
 }

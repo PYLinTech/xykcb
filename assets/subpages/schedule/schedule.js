@@ -2,9 +2,139 @@ import { translatePage, getI18n } from '/assets/init/languages.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { Dialog } from '/assets/common/dialog.js';
 import { CalendarPicker } from '/assets/common/calendar_picker.js';
-import { loadCourse, getCurrentSemesterAndWeek, getAvailableSemesters, getSemesterConfig, getWeekDates, getCourses, getCoursesByWeek, getCoursesByDate, formatWeeks } from '/assets/common/course_parser.js';
+import { loadCourse, getCurrentSemesterAndWeek, getAvailableSemesters, getSemesterConfig, getWeekDates, getCourses, getCoursesByWeek, getCoursesByDate, formatWeeks, getBaseCourseByHash } from '/assets/common/course_parser.js';
 import { refreshCourseData, getSavedUser, loadLogin } from '/assets/subpages/login/login.js';
 import { toast } from '/assets/common/toast.js';
+import { getCustomCourseItems, getCustomCourseItem, upsertCustomCourseItem, deleteCustomCourseItem, createCustomCourseId } from '/assets/common/custom_course_store.js';
+
+const DEFAULT_TOTAL_WEEKS = 20;
+const DEFAULT_SECTION_COUNT = 20;
+const CUSTOM_REFRESH_DELAY = 50;
+const DIALOG_CLOSE_DELAY = 200;
+const SWIPE_THRESHOLD = 40;
+const DELETE_REVEAL_RATIO = 0.2;
+const WEEKDAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_KEYS_WITH_SUN = ['Sun', ...WEEKDAY_KEYS];
+const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
+}
+
+function formatNumberRanges(values, separator = ',') {
+  if (!values?.length) return '';
+  const sorted = [...values].sort((a, b) => a - b);
+  const parts = [];
+  let start = sorted[0];
+  let prev = start;
+  for (let i = 1; i <= sorted.length; i++) {
+    const current = sorted[i];
+    if (current !== prev + 1) {
+      parts.push(start === prev ? String(start) : `${start}-${prev}`);
+      start = current;
+    }
+    prev = current;
+  }
+  return parts.join(separator);
+}
+
+function formatSections(sections) {
+  return formatNumberRanges(sections);
+}
+
+function addCourseToMap(map, key, course) {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key).push(course);
+}
+
+function getCourseSectionKeys(course, useLargeSection, sectionToLargeIndex) {
+  const sections = course.sections || [];
+  if (!useLargeSection) return sections;
+
+  const keys = [];
+  const handled = new Set();
+  for (const section of sections) {
+    const largeIdx = sectionToLargeIndex.get(section);
+    if (largeIdx !== undefined && !handled.has(largeIdx)) {
+      handled.add(largeIdx);
+      keys.push(largeIdx);
+    }
+  }
+  return keys;
+}
+
+function parseLocalDate(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  if (!y || !m || !d) return new Date();
+  return new Date(y, m - 1, d);
+}
+
+function formatLocalDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function getTodayWeekday() {
+  return new Date().getDay() || 7;
+}
+
+function getWeekdayLabel(weekday) {
+  return getI18n('schedule', `weekday${WEEKDAY_KEYS[weekday - 1]}`);
+}
+
+function isChineseScheduleLocale() {
+  return /[\u4e00-\u9fff]/.test(getI18n('schedule', 'weekdayMon'));
+}
+
+function activeAttr(active) {
+  return active ? ' data-active="true"' : '';
+}
+
+function parseIntegerList(value) {
+  return String(value || '').split(',').map(v => parseInt(v, 10)).filter(v => !Number.isNaN(v));
+}
+
+function renderScheduleOption(label, dataAttrs, active) {
+  const attrs = Object.entries(dataAttrs).map(([key, value]) => ` data-${key}="${escapeHtml(value)}"`).join('');
+  return `<span class="schedule-form-option"${attrs}${activeAttr(active)}>${escapeHtml(label)}</span>`;
+}
+
+function createDayNavButton(iconClass, dayDelta, container) {
+  const btn = document.createElement('div');
+  btn.innerHTML = `<i class="${iconClass}" style="font-size: 22px;"></i>`;
+  btn.classList.add('tap-active');
+  btn.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; color: var(--weui-FG-0); border-radius: 50%;';
+  btn.addEventListener('click', () => {
+    const date = parseLocalDate(currentDay);
+    date.setDate(date.getDate() + dayDelta);
+    currentDay = formatLocalDate(date);
+    renderDayViewCourses(container);
+  });
+  return btn;
+}
+
+function buildLargeSectionInfo(mergeableSections, timeSlots) {
+  const sorted = [...mergeableSections].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  const largeSectionMap = new Map();
+  const sectionToLargeIndex = new Map();
+  let largeIndex = 0;
+  for (const item of sorted) {
+    const [startSection, endSection] = item.split('-').map(n => parseInt(n, 10));
+    if (Number.isNaN(startSection) || Number.isNaN(endSection) || endSection < startSection) continue;
+    const sections = [];
+    for (let section = startSection; section <= endSection; section++) {
+      sections.push(section);
+      sectionToLargeIndex.set(section, largeIndex);
+    }
+    largeSectionMap.set(largeIndex, {
+      name: item,
+      sections,
+      startTime: timeSlots[startSection - 1]?.start || '',
+      endTime: timeSlots[endSection - 1]?.end || ''
+    });
+    largeIndex++;
+  }
+  return { largeSectionMap, sectionToLargeIndex };
+}
 
 const viewConfig = {
     dayView: { value: 'dayView', labelKey: 'dayView' },
@@ -12,7 +142,6 @@ const viewConfig = {
     semesterView: { value: 'semesterView', labelKey: 'semesterView' }
 };
 
-// 视图相关设置
 const getScheduleView = () => localStorage.getItem('schedule_view') || 'weekView';
 const saveScheduleView = (view) => localStorage.setItem('schedule_view', view);
 
@@ -24,13 +153,17 @@ let dailySectionCount = 0;
 let timeSlots = [];
 let currentSemesterAndWeek = null;
 let courseDataLoaded = false;
-let isRefreshing = false; // 防止重复刷新
+let isRefreshing = false;
 
-// 周次选项缓存，避免每次打开弹窗都重新创建数组
 let weekOptionsCache = null;
 let weekOptionsCacheKey = null;
+let scheduleClickHandler = null;
+let loginSuccessHandler = null;
 
-// 获取设置
+let scheduleActionState = null;
+let swipedCardWrapEl = null;
+let pageContainer = null;
+
 const getSetting = key => localStorage.getItem(`setting_${key}`) ?? 'true';
 const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
@@ -38,7 +171,6 @@ const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
 const startupUpdateEnabled = () => getSetting('autoUpdate') === 'true';
 
-// 根据课程名称生成颜色索引
 const getCourseColorIndex = (course) => {
     const name = course.name || '';
     let hash = 0;
@@ -49,12 +181,10 @@ const getCourseColorIndex = (course) => {
     return Math.abs(hash) % 10;
 };
 
-//顶部工具栏显示当前视图选项
 function updateContentView(container) {
     container.querySelector('#js_content_view_label').textContent = getI18n('schedule', viewConfig[scheduleView].labelKey);
 }
 
-//顶部工具栏显示当前学期选项
 function updateCurrentSemester(container) {
     if (currentSemesterId) {
         const semesterLabel = container.querySelector('#js_current_semester span[data-i18n="currentSemester"]');
@@ -64,7 +194,6 @@ function updateCurrentSemester(container) {
     }
 }
 
-//顶部工具栏显示当前周次选项，仅在切换为周次视图时显示
 function updateCurrentWeek(container) {
     const weekLabel = container.querySelector('#js_current_week_label');
     if (weekLabel) {
@@ -74,19 +203,16 @@ function updateCurrentWeek(container) {
             weekLabel.textContent = getI18n('schedule', 'weekN').replace('{n}', currentWeek);
         }
     }
-    // 周视图时显示，其他视图隐藏
     const weekBtn = container.querySelector('#js_current_week');
     if (weekBtn) {
         weekBtn.style.visibility = scheduleView === 'weekView' ? 'visible' : 'hidden';
     }
 }
 
-// 根据 scheduleView 渲染对应视图
 function renderSchedule(container) {
     const contentContainer = container.querySelector('#js_schedule_content');
     if (!contentContainer) return;
 
-    // 获取学期配置中的每日节次数
     const semesterConfig = getSemesterConfig(currentSemesterId);
     dailySectionCount = semesterConfig?.dailySectionCount || 0;
     timeSlots = semesterConfig?.timeSlots || [];
@@ -104,7 +230,18 @@ function renderSchedule(container) {
     }
 }
 
-// 日视图渲染
+function renderScheduleActionFab(container) {
+    container.querySelector('#js_schedule_action_fab')?.remove();
+    if (!courseDataLoaded || !currentSemesterId) return;
+    const fab = document.createElement('button');
+    fab.id = 'js_schedule_action_fab';
+    fab.className = 'schedule-action-fab';
+    fab.innerHTML = '<i class="ri-pencil-line"></i>';
+    fab.type = 'button';
+    fab.setAttribute('aria-label', getI18n('schedule', 'customCourse'));
+    container.appendChild(fab);
+}
+
 function renderDayView(container) {
     container.innerHTML = '';
     container.style.display = 'flex';
@@ -113,30 +250,16 @@ function renderDayView(container) {
     container.style.minHeight = '0';
     container.style.overflow = 'hidden';
 
-    // 初始化当前日期
     if (!currentDay) {
-        const today = new Date();
-        currentDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        currentDay = formatLocalDate(new Date());
     }
 
-    // 创建操作栏
     const toolbar = document.createElement('div');
     toolbar.id = 'js_dayview_toolbar';
     toolbar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; height: 46px; flex-shrink: 0; padding: 0 8px;';
 
-    // 左箭头
-    const leftBtn = document.createElement('div');
-    leftBtn.innerHTML = '<i class="ri-arrow-left-s-line" style="font-size: 22px;"></i>';
-    leftBtn.classList.add('tap-active');
-    leftBtn.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; color: var(--weui-FG-0); border-radius: 50%;';
-    leftBtn.addEventListener('click', () => {
-        const date = new Date(currentDay);
-        date.setDate(date.getDate() - 1);
-        currentDay = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        renderDayViewCourses(container);
-    });
+    const leftBtn = createDayNavButton('ri-arrow-left-s-line', -1, container);
 
-    // 当前日期文本
     const dateText = document.createElement('div');
     dateText.id = 'js_dayview_date';
     dateText.classList.add('tap-active');
@@ -151,79 +274,38 @@ function renderDayView(container) {
         });
     });
 
-    // 右箭头
-    const rightBtn = document.createElement('div');
-    rightBtn.innerHTML = '<i class="ri-arrow-right-s-line" style="font-size: 22px;"></i>';
-    rightBtn.classList.add('tap-active');
-    rightBtn.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; color: var(--weui-FG-0); border-radius: 50%;';
-    rightBtn.addEventListener('click', () => {
-        const date = new Date(currentDay);
-        date.setDate(date.getDate() + 1);
-        currentDay = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        renderDayViewCourses(container);
-    });
+    const rightBtn = createDayNavButton('ri-arrow-right-s-line', 1, container);
 
     toolbar.appendChild(leftBtn);
     toolbar.appendChild(dateText);
     toolbar.appendChild(rightBtn);
     container.appendChild(toolbar);
 
-    // 创建课程列表容器
     const courseList = document.createElement('div');
     courseList.id = 'js_dayview_courses';
     courseList.style.cssText = 'flex: 1; min-height: 0; overflow-y: auto; padding: 8px;';
     container.appendChild(courseList);
 
-    // 渲染课程
     renderDayViewCourses(container);
 }
 
-// 日视图课程列表渲染
 function renderDayViewCourses(container) {
     const courseList = container.querySelector('#js_dayview_courses');
     const dateText = container.querySelector('#js_dayview_date');
 
-    // 获取学期配置
     const semesterConfig = getSemesterConfig(currentSemesterId);
-    let mergeableSections = semesterConfig?.mergeableSections || [];
+    const mergeableSections = semesterConfig?.mergeableSections || [];
+    const useLargeSection = showLargeSection() && mergeableSections.length > 0;
+    const largeInfo = useLargeSection ? buildLargeSectionInfo(mergeableSections, timeSlots) : null;
+    const largeSectionMap = largeInfo?.largeSectionMap;
+    const sectionToLargeIndex = largeInfo?.sectionToLargeIndex;
 
-    // 按起始节次排序
-    mergeableSections = [...mergeableSections].sort((a, b) => {
-        const startA = parseInt(a.split('-')[0]);
-        const startB = parseInt(b.split('-')[0]);
-        return startA - startB;
-    });
-
-    // 解析大节配置
-    const largeSectionMap = new Map(); // 大节索引 -> { name: "1-2", sections: [1,2], startTime, endTime }
-    for (let i = 0; i < mergeableSections.length; i++) {
-        const parts = mergeableSections[i].split('-');
-        const startSection = parseInt(parts[0]);
-        const endSection = parseInt(parts[1]);
-        const sections = [];
-        for (let s = startSection; s <= endSection; s++) {
-            sections.push(s);
-        }
-        const startSlot = timeSlots[startSection - 1];
-        const endSlot = timeSlots[endSection - 1];
-        largeSectionMap.set(i, {
-            name: mergeableSections[i],
-            sections: sections,
-            startTime: startSlot?.start || '',
-            endTime: endSlot?.end || ''
-        });
-    }
-
-    const useLargeSection = showLargeSection() && largeSectionMap.size > 0;
-
-    // 更新日期文本
     const today = new Date();
-    const displayDate = new Date(currentDay);
+    const displayDate = parseLocalDate(currentDay);
     const isToday = today.getFullYear() === displayDate.getFullYear() &&
                     today.getMonth() === displayDate.getMonth() &&
                     today.getDate() === displayDate.getDate();
-    const weekdayKeys = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weekDay = getI18n('schedule', `weekday${weekdayKeys[displayDate.getDay()]}`);
+    const weekDay = getI18n('schedule', `weekday${WEEKDAY_KEYS_WITH_SUN[displayDate.getDay()]}`);
     const month = String(displayDate.getMonth() + 1).padStart(2, '0');
     const day = String(displayDate.getDate()).padStart(2, '0');
     const todayAbbr = getI18n('schedule', 'todayAbbr');
@@ -233,12 +315,10 @@ function renderDayViewCourses(container) {
 
     courseList.innerHTML = '';
 
-    // 获取当天课程数据
     const coursesResult = getCoursesByDate(currentSemesterId, currentDay);
 
     if (coursesResult === null) {
-        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-calendar-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourse')}</div></div>`;
-        // 检查登录状态
+        renderEmptyState(courseList, 'ri-calendar-line', getI18n('schedule', 'noCourse'));
         const savedUser = getSavedUser();
         if (!savedUser || savedUser.isLoggedIn === false) {
             toast.warn(getI18n('login', 'errorNotLoggedIn'));
@@ -248,70 +328,30 @@ function renderDayViewCourses(container) {
         }
         return;
     } else if (coursesResult === 'out') {
-        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-calendar-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'outOfSemester')}</div></div>`;
+        renderEmptyState(courseList, 'ri-calendar-line', getI18n('schedule', 'outOfSemester'));
     } else if (coursesResult === 'none' || !coursesResult?.length) {
-        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-calendar-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourse')}</div></div>`;
+        renderEmptyState(courseList, 'ri-calendar-line', getI18n('schedule', 'noCourse'));
     } else if (Array.isArray(coursesResult)) {
-        // 按节次收集课程，同一节次可能有多个课程
         const sectionCoursesMap = new Map();
 
-        if (useLargeSection) {
-            // 大节模式：按大节收集课程
-            for (const course of coursesResult) {
-                for (const [day, sections] of Object.entries(course.schedule)) {
-                    const dayNum = parseInt(day);
-                    const targetDayNum = displayDate.getDay() || 7;
-                    if (dayNum === targetDayNum) {
-                        // 查找课程所属的大节
-                        for (const [largeIdx, largeSection] of largeSectionMap) {
-                            const hasSection = sections.some(s => largeSection.sections.includes(s));
-                            if (hasSection) {
-                                if (!sectionCoursesMap.has(largeIdx)) {
-                                    sectionCoursesMap.set(largeIdx, []);
-                                }
-                                // 避免重复添加同一课程
-                                if (!sectionCoursesMap.get(largeIdx).includes(course)) {
-                                    sectionCoursesMap.get(largeIdx).push(course);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // 小节模式：按小节收集课程
-            for (const course of coursesResult) {
-                for (const [day, sections] of Object.entries(course.schedule)) {
-                    const dayNum = parseInt(day);
-                    const targetDayNum = displayDate.getDay() || 7;
-                    if (dayNum === targetDayNum) {
-                        for (const section of sections) {
-                            if (!sectionCoursesMap.has(section)) {
-                                sectionCoursesMap.set(section, []);
-                            }
-                            sectionCoursesMap.get(section).push(course);
-                        }
-                    }
-                }
+        for (const course of coursesResult) {
+            for (const sectionKey of getCourseSectionKeys(course, useLargeSection, sectionToLargeIndex)) {
+                addCourseToMap(sectionCoursesMap, sectionKey, course);
             }
         }
 
-        // 按节次排序
         const sortedSections = Array.from(sectionCoursesMap.keys()).sort((a, b) => a - b);
 
-        // 使用 DocumentFragment 减少 DOM 操作
         const fragment = document.createDocumentFragment();
         for (const sectionIdx of sortedSections) {
             const sectionCourses = sectionCoursesMap.get(sectionIdx);
             for (const course of sectionCourses) {
                 let sectionDisplay, timeDisplay;
                 if (useLargeSection) {
-                    // 大节显示
-                    const largeSection = largeSectionMap.get(sectionIdx);
-                    sectionDisplay = largeSection?.name || '';
-                    timeDisplay = largeSection ? `${largeSection.startTime}-${largeSection.endTime}` : '';
+                    const ls = largeSectionMap.get(sectionIdx);
+                    sectionDisplay = ls?.name || '';
+                    timeDisplay = ls ? `${ls.startTime}-${ls.endTime}` : '';
                 } else {
-                    // 小节显示
                     const slot = timeSlots[sectionIdx - 1];
                     sectionDisplay = sectionIdx;
                     timeDisplay = slot ? `${slot.start}-${slot.end}` : '';
@@ -320,12 +360,10 @@ function renderDayViewCourses(container) {
                 card.style.cssText = 'display: flex; min-height: 100px; margin-bottom: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
                 card.classList.add(`course-bg-${getCourseColorIndex(course)}`);
 
-                // 左侧节次
                 const leftSection = document.createElement('div');
                 leftSection.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; flex-shrink: 0; border-right: 1px solid var(--weui-FG-3); padding: 8px;';
                 leftSection.innerHTML = `<div style="font-size: 24px; color: var(--weui-FG-0); font-weight: 600; line-height: 1.2;">${sectionDisplay}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 2px;">${timeDisplay}</div>`;
 
-                // 右侧课程信息
                 const rightInfo = document.createElement('div');
                 rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
 
@@ -334,13 +372,13 @@ function renderDayViewCourses(container) {
 
                 let metaHtml = '';
                 if (course.location) {
-                    metaHtml += `<span style="display: inline-flex; align-items: center; margin-right: 12px; color: var(--weui-FG-1);"><i class="ri-map-pin-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${course.location}</span>`;
+                    metaHtml += `<span style="display: inline-flex; align-items: center; margin-right: 12px; color: var(--weui-FG-1);"><i class="ri-map-pin-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${escapeHtml(course.location)}</span>`;
                 }
                 if (course.teacher) {
-                    metaHtml += `<span style="display: inline-flex; align-items: center; color: var(--weui-FG-1);"><i class="ri-user-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${course.teacher}</span>`;
+                    metaHtml += `<span style="display: inline-flex; align-items: center; color: var(--weui-FG-1);"><i class="ri-user-fill" style="margin-right: 2px; font-size: 12px; color: var(--weui-FG-1);"></i>${escapeHtml(course.teacher)}</span>`;
                 }
 
-                rightInfo.innerHTML = `<div style="${nameStyle}">${course.name}</div><div style="${metaStyle}">${metaHtml}</div>`;
+                rightInfo.innerHTML = `<div style="${nameStyle}">${escapeHtml(course.name)}</div><div style="${metaStyle}">${metaHtml}</div>`;
 
                 card.appendChild(leftSection);
                 card.appendChild(rightInfo);
@@ -353,37 +391,16 @@ function renderDayViewCourses(container) {
     }
 }
 
-// 辅助函数：格式化课程时间为显示文本
 function formatCourseTimeText(course) {
-    const weekdayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const daySchedules = new Map();
-    for (const [day, sections] of Object.entries(course.schedule || {})) {
-        const dayNum = parseInt(day);
-        if (!daySchedules.has(dayNum)) daySchedules.set(dayNum, []);
-        daySchedules.get(dayNum).push(...sections);
+    const sections = [...(course.sections || [])].sort((a, b) => a - b);
+    if (!course.weekday) {
+        return sections.length ? `${formatSections(sections)}${getI18n('schedule', 'sectionSuffix')}` : '-';
     }
-    const scheduleTexts = [];
-    for (const [day, sections] of daySchedules) {
-        const weekday = getI18n('schedule', `weekday${weekdayKeys[day - 1]}`);
-        sections.sort((a, b) => a - b);
-        let result = weekday;
-        let start = sections[0];
-        let prev = start;
-        for (let i = 1; i <= sections.length; i++) {
-            const current = sections[i];
-            if (current !== prev + 1) {
-                const sectionStr = start === prev ? start : `${start}-${prev}`;
-                result += result === weekday ? ` ${sectionStr}` : `,${sectionStr}`;
-                start = current;
-            }
-            prev = current;
-        }
-        scheduleTexts.push(`${result} ${getI18n('schedule', 'sectionSuffix')}`);
-    }
-    return scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
+    const weekday = getWeekdayLabel(course.weekday);
+    if (sections.length === 0) return weekday;
+    return `${weekday} ${formatSections(sections)} ${getI18n('schedule', 'sectionSuffix')}`;
 }
 
-// 生成课程详情弹窗内容
 function generateCourseDetailContent(courses) {
     const lineStyle = 'display: flex; align-items: flex-start; line-height: 1.6; font-size: 16px; margin-top: 4px;';
     const iconStyle = 'color: var(--weui-FG-1); margin-right: 8px; flex-shrink: 0; font-size: 16px;';
@@ -391,10 +408,10 @@ function generateCourseDetailContent(courses) {
     return courses.map((course, index) => {
         const separator = index > 0 ? '<div style="border-top: 1px solid var(--weui-FG-3); margin: 22px 0 18px;"></div>' : '';
         return `${separator}
-            <div style="font-size: 20px; text-align: center; margin-bottom: 12px;">${course.name}</div>
+            <div style="font-size: 20px; text-align: center; margin-bottom: 12px;">${escapeHtml(course.name)}</div>
             <div style="${lineStyle}">
                 <i class="ri-map-pin-fill" style="${iconStyle}"></i>
-                <span style="${spanStyle}">${getI18n('schedule', 'location')}${course.location}</span>
+                <span style="${spanStyle}">${getI18n('schedule', 'location')}${escapeHtml(course.location) || '-'}</span>
             </div>
             <div style="${lineStyle}">
                 <i class="ri-time-fill" style="${iconStyle}"></i>
@@ -402,16 +419,18 @@ function generateCourseDetailContent(courses) {
             </div>
             <div style="${lineStyle}">
                 <i class="ri-user-fill" style="${iconStyle}"></i>
-                <span style="${spanStyle}">${getI18n('schedule', 'teacher')}${course.teacher}</span>
+                <span style="${spanStyle}">${getI18n('schedule', 'teacher')}${escapeHtml(course.teacher) || '-'}</span>
             </div>
             <div style="${lineStyle}">
                 <i class="ri-calendar-check-fill" style="${iconStyle}"></i>
-                <span style="${spanStyle}">${getI18n('schedule', 'week')}${formatWeeks(course.weeks)}</span>
+                <span style="${spanStyle}">${getI18n('schedule', 'week')}${formatWeeks(course.weeks) || '-'}</span>
+            </div>
+            <div style="text-align: right; margin-top: 8px;">
+                <a href="javascript:;" class="schedule-detail-edit" data-course-hash="${escapeHtml(course.hash)}" style="font-size: 14px; color: var(--weui-BRAND); text-decoration: none;">${getI18n('schedule', 'editCourse')}</a>
             </div>`;
     }).join('');
 }
 
-// 显示课程详情弹窗
 function showCourseDetailDialog(courses) {
     const content = generateCourseDetailContent(courses);
     Dialog.show({
@@ -420,10 +439,27 @@ function showCourseDetailDialog(courses) {
         buttons: [{ text: getI18n('schedule', 'close') }],
         allowMaskClose: true
     });
+
+    const wrap = document.getElementById('weuiDialogWrap');
+    wrap?.addEventListener('click', e => {
+        const editBtn = e.target.closest('.schedule-detail-edit');
+        if (!editBtn) return;
+        const hash = editBtn.dataset.courseHash;
+        const course = courses.find(c => c.hash === hash);
+        if (!course) return;
+        document.getElementById('weuiDialogWrap')?.remove();
+        openScheduleActionPanel({
+            mode: 'edit',
+            tab: 'add',
+            sourceCourse: course,
+            sourceCourseHash: course.hash,
+            termId: course.termId || currentSemesterId
+        });
+    });
 }
 
 function getSemesterCourseGroupKey(course) {
-    return course.rawId || course.id || `${course.name || ''}|${course.teacher || ''}`;
+    return course.rawId ? `raw:${course.rawId}` : `hash:${course.hash}`;
 }
 
 function pushUnique(list, value) {
@@ -431,14 +467,45 @@ function pushUnique(list, value) {
 }
 
 function getFirstWeek(course) {
-    return Math.min(...(course.weeks || [Number.MAX_SAFE_INTEGER]));
+    const weeks = Array.isArray(course.weeks) ? course.weeks : [];
+    return weeks.length ? Math.min(...weeks) : Number.MAX_SAFE_INTEGER;
 }
 
-// 周视图渲染
+function syncCurrentSemesterAndWeek() {
+    const semesterAndWeek = getCurrentSemesterAndWeek();
+    if (!semesterAndWeek) return false;
+    currentSemesterId = semesterAndWeek.semesterId;
+    currentWeek = semesterAndWeek.week;
+    currentSemesterAndWeek = semesterAndWeek.week !== 0 ? semesterAndWeek : null;
+    return true;
+}
+
+function refreshScheduleView(container) {
+    updateCurrentSemester(container);
+    updateContentView(container);
+    updateCurrentWeek(container);
+    renderSchedule(container);
+    renderScheduleActionFab(container);
+}
+
+function refreshPageSchedule(delay = CUSTOM_REFRESH_DELAY) {
+    if (!pageContainer) return;
+    if (delay > 0) setTimeout(() => refreshScheduleView(pageContainer), delay);
+    else refreshScheduleView(pageContainer);
+}
+
+function renderEmptyState(container, iconClass, text) {
+    container.innerHTML = `
+    <div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;">
+      <i class="${iconClass}" style="font-size: 48px; margin-bottom: 12px;"></i>
+      <div style="margin-top: 8px;">${escapeHtml(text)}</div>
+    </div>
+  `;
+}
+
 function renderWeekView(container) {
     container.innerHTML = '';
 
-    // 如果课程数据加载失败，显示提示
     if (!courseDataLoaded) {
         const savedUser = getSavedUser();
         const isLoggedIn = savedUser && savedUser.isLoggedIn !== false;
@@ -457,39 +524,12 @@ function renderWeekView(container) {
         return;
     }
 
-    // 获取学期配置
     const semesterConfig = getSemesterConfig(currentSemesterId);
-    let mergeableSections = semesterConfig?.mergeableSections || [];
-
-    // 按起始节次排序
-    mergeableSections = [...mergeableSections].sort((a, b) => {
-        const startA = parseInt(a.split('-')[0]);
-        const startB = parseInt(b.split('-')[0]);
-        return startA - startB;
-    });
-
-    // 解析大节配置
-    const largeSectionMap = new Map(); // 大节索引 -> { name: "1-2", sections: [1,2], startTime, endTime }
-    for (let i = 0; i < mergeableSections.length; i++) {
-        const parts = mergeableSections[i].split('-');
-        const startSection = parseInt(parts[0]);
-        const endSection = parseInt(parts[1]);
-        const sections = [];
-        for (let s = startSection; s <= endSection; s++) {
-            sections.push(s);
-        }
-        // 获取起始和结束时间
-        const startSlot = timeSlots[startSection - 1];
-        const endSlot = timeSlots[endSection - 1];
-        largeSectionMap.set(i, {
-            name: mergeableSections[i],
-            sections: sections,
-            startTime: startSlot?.start || '',
-            endTime: endSlot?.end || ''
-        });
-    }
-
-    const useLargeSection = showLargeSection() && largeSectionMap.size > 0;
+    const mergeableSections = semesterConfig?.mergeableSections || [];
+    const useLargeSection = showLargeSection() && mergeableSections.length > 0;
+    const largeInfo = useLargeSection ? buildLargeSectionInfo(mergeableSections, timeSlots) : null;
+    const largeSectionMap = largeInfo?.largeSectionMap;
+    const sectionToLargeIndex = largeInfo?.sectionToLargeIndex;
     const rowCount = useLargeSection ? largeSectionMap.size : dailySectionCount;
 
     container.style.display = 'grid';
@@ -498,32 +538,23 @@ function renderWeekView(container) {
     container.style.overflow = 'auto';
     container.style.width = '100%';
 
-    // 根据设置确定列数
     const displayWeekend = showWeekend();
     const columnCount = displayWeekend ? 8 : 6;
     container.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`;
     container.style.gridTemplateRows = `46px repeat(${rowCount}, minmax(80px, 1fr))`;
 
-    // 根据设置确定边框
     const displayBorder = showBorder();
     const displayTeacher = showTeacher();
 
-    // 获取当前周次日期
     const weekDates = currentWeek > 0 ? getWeekDates(currentSemesterId, currentWeek) : null;
 
-    // 获取今天的日期字符串
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayStr = formatLocalDate(new Date());
 
-    // 获取课程数据
     const courses = currentWeek > 0 ? getCoursesByWeek(currentSemesterId, currentWeek) : getCourses(currentSemesterId);
 
-    // 存储所有单元格的引用
     const cells = [];
-    // 使用 DocumentFragment 减少 DOM 操作
     const fragment = document.createDocumentFragment();
 
-    // 绘制所有单元格
     const totalCells = columnCount * (rowCount + 1);
     for (let i = 0; i < totalCells; i++) {
         const cell = document.createElement('div');
@@ -538,27 +569,22 @@ function renderWeekView(container) {
         cell.style.minWidth = '0';
         cell.style.minHeight = '0';
 
-        // 第一列从第二行开始填充节次
         const col = i % columnCount;
         const row = Math.floor(i / columnCount);
-        // 第一行显示表头
         if (row === 0) {
             if (col === 0) {
                 cell.textContent = getI18n('schedule', 'section');
             } else {
-                const weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][col - 1];
+                const weekday = WEEKDAY_KEYS[col - 1];
                 const dateStr = weekDates?.[col];
                 if (dateStr) {
-                    // 将 "2025-09-01" 转换为 "9.1"
                     const [, month, day] = dateStr.split('-');
                     cell.innerHTML = `<div>${getI18n('schedule', `weekday${weekday}`)}</div><div style="font-size: 12px; color: var(--weui-FG-1);">${parseInt(month)}.${parseInt(day)}</div>`;
                     cell.style.display = 'flex';
                     cell.style.flexDirection = 'column';
                     cell.style.alignItems = 'center';
-                    // 如果是今天，背景色设为品牌色
                     if (dateStr === todayStr) {
                         cell.style.backgroundColor = 'var(--weui-BRAND)';
-                        // 所有子元素文字设为白色
                         for (const child of cell.children) {
                             child.style.color = '#fff';
                         }
@@ -570,13 +596,11 @@ function renderWeekView(container) {
             cell.style.fontSize = '14px';
         } else if (col === 0 && row > 0 && row <= rowCount) {
             if (useLargeSection) {
-                // 大节显示
-                const largeSection = largeSectionMap.get(row - 1);
-                if (largeSection) {
-                    cell.innerHTML = `<div style="font-size: 16px;">${largeSection.name}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${largeSection.startTime}-${largeSection.endTime}</div>`;
+                const ls = largeSectionMap.get(row - 1);
+                if (ls) {
+                    cell.innerHTML = `<div style="font-size: 16px;">${ls.name}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${ls.startTime}-${ls.endTime}</div>`;
                 }
             } else {
-                // 小节显示
                 const slot = timeSlots[row - 1];
                 if (slot?.section && slot?.start && slot?.end) {
                     cell.innerHTML = `<div style="font-size: 16px;">${slot.section}</div><div style="font-size: 10px; color: var(--weui-FG-1);">${slot.start}-<wbr>${slot.end}</div>`;
@@ -596,94 +620,39 @@ function renderWeekView(container) {
         fragment.appendChild(cell);
     }
 
-    // 一次性将所有单元格添加到容器
     container.appendChild(fragment);
 
-    // 按位置分组收集课程
     const cellCoursesMap = new Map();
 
     for (const course of courses) {
-        for (const [day, sections] of Object.entries(course.schedule)) {
-            const dayNum = parseInt(day); // 星期几 (1-7)
-            // 如果不显示周末且是周六日，跳过
-            if (!displayWeekend && dayNum >= 6) continue;
-            const col = dayNum;
-
-            if (useLargeSection) {
-                // 大节模式：将课程放入对应的大节
-                // 首先找到课程所有节次对应的大节
-                const largeSectionCourses = new Map(); // 大节索引 -> 课程列表
-
-                for (const section of sections) {
-                    // 查找该小节属于哪个大节
-                    for (const [largeIdx, largeSection] of largeSectionMap) {
-                        if (largeSection.sections.includes(section)) {
-                            if (!largeSectionCourses.has(largeIdx)) {
-                                largeSectionCourses.set(largeIdx, []);
-                            }
-                            // 避免重复添加同一课程
-                            if (!largeSectionCourses.get(largeIdx).includes(course)) {
-                                largeSectionCourses.get(largeIdx).push(course);
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                // 将课程放入对应大节
-                for (const [largeIdx, courseList] of largeSectionCourses) {
-                    const row = largeIdx + 1; // 大节索引从1开始（0是表头）
-                    const cellIndex = row * columnCount + col;
-                    if (cellIndex >= 0 && cellIndex < cells.length) {
-                        if (!cellCoursesMap.has(cellIndex)) {
-                            cellCoursesMap.set(cellIndex, []);
-                        }
-                        // 合并课程列表
-                        for (const c of courseList) {
-                            if (!cellCoursesMap.get(cellIndex).includes(c)) {
-                                cellCoursesMap.get(cellIndex).push(c);
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 小节模式
-                for (const section of sections) {
-                    const row = section; // 第几节 (1-n)
-                    const cellIndex = row * columnCount + col;
-                    if (cellIndex >= 0 && cellIndex < cells.length) {
-                        if (!cellCoursesMap.has(cellIndex)) {
-                            cellCoursesMap.set(cellIndex, []);
-                        }
-                        cellCoursesMap.get(cellIndex).push(course);
-                    }
-                }
+        const dayNum = course.weekday;
+        if (!dayNum || (!displayWeekend && dayNum >= 6)) continue;
+        const col = dayNum;
+        for (const sectionKey of getCourseSectionKeys(course, useLargeSection, sectionToLargeIndex)) {
+            const cellIndex = (useLargeSection ? sectionKey + 1 : sectionKey) * columnCount + col;
+            if (cellIndex >= 0 && cellIndex < cells.length) {
+                addCourseToMap(cellCoursesMap, cellIndex, course);
             }
         }
     }
 
-    // 填充课程
     for (const [cellIndex, cellCourses] of cellCoursesMap) {
         const cell = cells[cellIndex];
         cellCourses.sort((a, b) => getFirstWeek(a) - getFirstWeek(b));
-        // 取第一个课程显示
         const course = cellCourses[0];
-        // 如果有多个课程，显示红色三角形标记
         const multipleIndicator = cellCourses.length > 1
             ? `<div style="position: absolute; top: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 12px 12px 0; border-color: transparent #ff4d4f transparent transparent;"></div>`
             : '';
-        const teacherHtml = displayTeacher ? `<div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 6px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.teacher}</div>` : '';
-        cell.innerHTML = `<div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px;">${multipleIndicator}<div style="font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.name}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 8px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${course.location}</div>${teacherHtml}</div>`;
+        const teacherHtml = displayTeacher ? `<div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 6px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.teacher)}</div>` : '';
+        cell.innerHTML = `<div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px;">${multipleIndicator}<div style="font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.name)}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 8px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.location)}</div>${teacherHtml}</div>`;
         cell.classList.add(`course-bg-${getCourseColorIndex(course)}`);
         cell.style.position = 'relative';
         cell.style.overflow = 'hidden';
-        // 添加点击事件
         cell.style.cursor = 'pointer';
         cell.addEventListener('click', () => showCourseDetailDialog(cellCourses));
     }
 }
 
-// 学期视图渲染
 function renderSemesterView(container) {
     container.innerHTML = '';
     container.style.display = 'flex';
@@ -692,18 +661,15 @@ function renderSemesterView(container) {
     container.style.minHeight = '0';
     container.style.overflow = 'hidden';
 
-    // 创建课程卡片容器
     const courseList = document.createElement('div');
     courseList.id = 'js_semesterview_courses';
     courseList.style.cssText = 'flex: 1; min-height: 0; overflow-y: auto; padding: 12px;';
     container.appendChild(courseList);
 
-    // 获取所有课程数据
     const courses = getCourses(currentSemesterId);
 
     if (!courses || courses.length === 0) {
-        courseList.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); margin-top: 40px;"><i class="ri-book-2-line" style="font-size: 48px; margin-bottom: 12px;"></i><div style="margin-top: 8px;">${getI18n('schedule', 'noCourseInSemester')}</div></div>`;
-        // 检查登录状态
+        renderEmptyState(courseList, 'ri-book-2-line', getI18n('schedule', 'noCourseInSemester'));
         const savedUser = getSavedUser();
         if (!savedUser || savedUser.isLoggedIn === false) {
             toast.warn(getI18n('login', 'errorNotLoggedIn'));
@@ -714,59 +680,33 @@ function renderSemesterView(container) {
         return;
     }
 
-    // 辅助函数：格式化单个课程的时间
-    function formatCourseTime(course) {
-        const weekdayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const daySchedules = new Map();
-        for (const [day, sections] of Object.entries(course.schedule || {})) {
-            const dayNum = parseInt(day);
-            if (!daySchedules.has(dayNum)) daySchedules.set(dayNum, []);
-            daySchedules.get(dayNum).push(...sections);
-        }
-        const scheduleTexts = [];
-        for (const [day, sections] of daySchedules) {
-            const weekday = getI18n('schedule', `weekday${weekdayKeys[day - 1]}`);
-            sections.sort((a, b) => a - b);
-            let result = weekday;
-            let start = sections[0];
-            let prev = start;
-            for (let i = 1; i <= sections.length; i++) {
-                const current = sections[i];
-                if (current !== prev + 1) {
-                    const sectionStr = start === prev ? start : `${start}-${prev}`;
-                    result += result === weekday ? ` ${sectionStr}` : `,${sectionStr}`;
-                    start = current;
-                }
-                prev = current;
-            }
-            scheduleTexts.push(`${result} ${getI18n('schedule', 'sectionSuffix')}`);
-        }
-        return scheduleTexts.join(getI18n('schedule', 'scheduleSeparator') + '\u200B');
-    }
-
-    // 服务端 id 已经是细分后的 hash，学期视图按 rawId 手动合并同一门课的不同安排。
     const courseGroupMap = new Map();
     for (const course of courses) {
-        const key = getSemesterCourseGroupKey(course);
-        if (!courseGroupMap.has(key)) {
-            courseGroupMap.set(key, []);
+        const groupKey = getSemesterCourseGroupKey(course);
+        if (!courseGroupMap.has(groupKey)) {
+            courseGroupMap.set(groupKey, {
+                groupKey,
+                rawId: course.rawId,
+                name: course.name,
+                teacher: course.teacher,
+                subCourses: []
+            });
         }
-        courseGroupMap.get(key).push(course);
+        courseGroupMap.get(groupKey).subCourses.push(course);
     }
 
-    // 渲染每个课程组 - 使用 DocumentFragment 减少 DOM 操作
     const fragment = document.createDocumentFragment();
-    for (const [key, groupCourses] of courseGroupMap) {
-        const course = groupCourses[0];
+    for (const group of courseGroupMap.values()) {
+        const subCourses = group.subCourses;
+        const firstCourse = subCourses[0];
 
-        // 收集地点、时间、周次，用 | 分割
         const locations = [];
         const times = [];
         const weeks = [];
 
-        for (const c of groupCourses) {
-            pushUnique(locations, c.location || '-');
-            pushUnique(times, formatCourseTime(c));
+        for (const c of subCourses) {
+            pushUnique(locations, escapeHtml(c.location || '-'));
+            pushUnique(times, formatCourseTimeText(c));
             pushUnique(weeks, formatWeeks(c.weeks) || '-');
         }
 
@@ -776,31 +716,26 @@ function renderSemesterView(container) {
 
         const card = document.createElement('div');
         card.style.cssText = 'display: flex; min-height: 120px; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.25);';
-        card.classList.add(`course-bg-${getCourseColorIndex(course)}`);
+        card.classList.add(`course-bg-${getCourseColorIndex(firstCourse)}`);
 
-        // 左侧课程名称
         const leftName = document.createElement('div');
         leftName.style.cssText = 'width: 100px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 12px; border-right: 1px solid var(--weui-FG-3);';
-        leftName.innerHTML = `<div style="font-size: 15px; color: var(--weui-FG-0); line-height: 1.4; text-align: center; word-break: break-all;">${course.name}</div>`;
+        leftName.innerHTML = `<div style="font-size: 15px; color: var(--weui-FG-0); line-height: 1.4; text-align: center; word-break: break-all;">${escapeHtml(firstCourse.name)}</div>`;
 
-        // 右侧课程信息
         const rightInfo = document.createElement('div');
         rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
 
         let metaHtml = '';
-        // 地点
         if (locationStr) {
             metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-map-pin-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'location')}${locationStr}</span></div>`;
         }
-        // 教师
-        if (showTeacher() && course.teacher) {
-            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-user-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'teacher')}${course.teacher}</span></div>`;
+        if (showTeacher()) {
+            const teacherVal = firstCourse.teacher ? escapeHtml(firstCourse.teacher) : '-';
+            metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-user-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1);">${getI18n('schedule', 'teacher')}${teacherVal}</span></div>`;
         }
-        // 节次
         if (timeStr) {
             metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-time-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'time')}${timeStr}</span></div>`;
         }
-        // 周次
         if (weeksStr) {
             metaHtml += `<div style="display: flex; align-items: flex-start;"><i class="ri-calendar-check-fill" style="margin-right: 6px; font-size: 12px; color: var(--weui-FG-1); flex-shrink: 0;"></i><span style="font-size: 12px; color: var(--weui-FG-1); word-break: keep-all;">${getI18n('schedule', 'week')}${weeksStr}</span></div>`;
         }
@@ -810,59 +745,686 @@ function renderSemesterView(container) {
         card.appendChild(leftName);
         card.appendChild(rightInfo);
         card.style.cursor = 'pointer';
-        card.addEventListener('click', () => showCourseDetailDialog(groupCourses));
+        card.addEventListener('click', () => showCourseDetailDialog(subCourses));
         fragment.appendChild(card);
     }
     courseList.appendChild(fragment);
 }
 
-// 课程页面起始加载方法
+// ---- Custom Course Dialog ----
+
+function getWeekdayShortLabels() {
+    return isChineseScheduleLocale()
+        ? ['一', '二', '三', '四', '五', '六', '日']
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+}
+
+function buildCustomSectionOptions(termId) {
+    const config = getSemesterConfig(termId);
+    const timeSlots = config?.timeSlots || [];
+    const mergeableSections = config?.mergeableSections || [];
+
+    if (showLargeSection() && mergeableSections.length > 0) {
+        const largeInfo = buildLargeSectionInfo(mergeableSections, timeSlots);
+        return Array.from(largeInfo.largeSectionMap.values())
+            .map(ls => ({ label: ls.name, sections: [...ls.sections] }))
+            .sort((a, b) => a.sections[0] - b.sections[0]);
+    }
+
+    const sectionCount = config?.dailySectionCount || timeSlots.length || DEFAULT_SECTION_COUNT;
+    return Array.from({ length: sectionCount }, (_, i) => {
+        const sectionNo = timeSlots[i]?.section || (i + 1);
+        return {
+            label: String(sectionNo),
+            sections: [sectionNo]
+        };
+    });
+}
+
+function getTotalWeeks(termId) {
+    const config = getSemesterConfig(termId);
+    if (config?.totalWeeks) return config.totalWeeks;
+    for (let week = DEFAULT_TOTAL_WEEKS; week >= 1; week--) {
+        const dates = getWeekDates(termId, week);
+        if (dates && Object.values(dates).some(Boolean)) {
+            return week;
+        }
+    }
+    return DEFAULT_TOTAL_WEEKS;
+}
+
+function updateScheduleActionModeText(mode) {
+    const isEdit = mode === 'edit';
+    const titleEl = document.querySelector('.schedule-dialog-tab[data-tab="add"] .js_tab_text');
+    if (titleEl) titleEl.textContent = getI18n('schedule', isEdit ? 'editCourseTitle' : 'addCourse');
+    const submitBtn = document.querySelector('#js_add_course_btn');
+    if (submitBtn) submitBtn.textContent = getI18n('schedule', isEdit ? 'saveCourse' : 'add');
+}
+
+function resetSwipedCard() {
+    if (!swipedCardWrapEl) return;
+    const card = swipedCardWrapEl.querySelector('.schedule-manage-card');
+    if (card) {
+        card.style.transform = '';
+        card.style.transition = '';
+        card.classList.remove('schedule-manage-card--swiped');
+    }
+    swipedCardWrapEl.classList.remove('is-delete-open');
+    swipedCardWrapEl = null;
+}
+
+function openDeleteConfirm(cardWrap) {
+    if (!cardWrap) return;
+    if (swipedCardWrapEl && swipedCardWrapEl !== cardWrap) {
+        resetSwipedCard();
+    }
+    const card = cardWrap.querySelector('.schedule-manage-card');
+    if (card) {
+        card.style.transform = '';
+        card.style.transition = '';
+        card.classList.add('schedule-manage-card--swiped');
+    }
+    cardWrap.classList.add('is-delete-open');
+    swipedCardWrapEl = cardWrap;
+}
+
+function getScheduleActionInitialForm(existingItem, sourceCourse, termId) {
+    const source = existingItem || sourceCourse;
+    if (!source) return getDefaultScheduleActionForm(termId);
+    return {
+        name: source.name || '',
+        location: source.location || '',
+        teacher: source.teacher || '',
+        weekday: source.weekday != null ? source.weekday : 1,
+        sections: [...(source.sections || [])],
+        weeks: [...(source.weeks || [])]
+    };
+}
+
+function openScheduleActionPanel(options = {}) {
+    closeScheduleActionPanel();
+    resetSwipedCard();
+
+    const mode = options.mode || 'add';
+    const sourceCourse = options.sourceCourse || null;
+    let sourceCourseHash = options.sourceCourseHash || '';
+    const termId = options.termId || currentSemesterId;
+    let editingId = options.editingId || '';
+
+    // 从课程详情编辑 add 课程时，用 editingId 而非 sourceCourseHash
+    if (sourceCourse && sourceCourse.customType === 'add' && !editingId) {
+        editingId = sourceCourse.hash || sourceCourseHash;
+        sourceCourseHash = '';
+    }
+    const existingItem = options.existingItem || null;
+
+    const sectionOptions = buildCustomSectionOptions(termId);
+    const totalWeeks = getTotalWeeks(termId);
+    const form = getScheduleActionInitialForm(existingItem, sourceCourse, termId);
+    const sectionSet = new Set(form.sections);
+    const weekSet = new Set(form.weeks);
+
+    scheduleActionState = {
+        mode,
+        tab: options.tab || 'add',
+        editingId,
+        sourceCourseHash,
+        termId,
+        form
+    };
+
+    const weekdayLabels = getWeekdayShortLabels();
+
+    const sectionHtml = sectionOptions.map(opt => {
+        const sectionsStr = opt.sections.join(',');
+        return renderScheduleOption(opt.label, { sections: sectionsStr }, opt.sections.every(s => sectionSet.has(s)));
+    }).join('');
+
+    const weekHtml = Array.from({ length: totalWeeks }, (_, i) => {
+        const val = i + 1;
+        return renderScheduleOption(val, { value: val }, weekSet.has(val));
+    }).join('');
+
+    const titleKey = mode === 'edit' ? 'editCourseTitle' : 'addCourse';
+    const submitKey = mode === 'edit' ? 'saveCourse' : 'add';
+
+    const wrap = document.createElement('div');
+    wrap.id = 'js_schedule_dialog_wrap';
+    wrap.className = 'schedule-dialog-wrap';
+    wrap.innerHTML = `
+    <div class="weui-mask"></div>
+    <div class="schedule-dialog-panel">
+      <div class="schedule-dialog-hd">
+        <span class="schedule-dialog-tab" data-tab="add" data-active="true">
+          <span class="schedule-dialog-tab-text">
+            <span class="js_tab_text">${getI18n('schedule', titleKey)}</span>
+            <span class="schedule-dialog-indicator"></span>
+          </span>
+        </span>
+        <span class="schedule-dialog-tab" data-tab="manage">
+          <span class="schedule-dialog-tab-text">
+            ${getI18n('schedule', 'manageCustomCourse')}
+            <span class="schedule-dialog-indicator"></span>
+          </span>
+        </span>
+        <i class="schedule-dialog-close ri-close-line"></i>
+      </div>
+      <div class="schedule-dialog-bd">
+        <div data-tab-content="add" class="schedule-dialog-tab-add">
+          <div class="weui-cells__group weui-cells__group_form">
+            <div class="weui-cells">
+              <label class="weui-cell weui-cell_active">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'courseName')}</span></div>
+                <div class="weui-cell__bd weui-flex">
+                  <input class="weui-input" data-course-field="name" type="text" placeholder="${getI18n('schedule', 'courseNamePlaceholder')}" value="${escapeHtml(form.name)}" />
+                </div>
+              </label>
+              <label class="weui-cell weui-cell_active">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'courseLocation')}</span></div>
+                <div class="weui-cell__bd weui-flex">
+                  <input class="weui-input" data-course-field="location" type="text" placeholder="${getI18n('schedule', 'courseLocationPlaceholder')}" value="${escapeHtml(form.location)}" />
+                </div>
+              </label>
+              <label class="weui-cell weui-cell_active">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'courseTeacher')}</span></div>
+                <div class="weui-cell__bd weui-flex">
+                  <input class="weui-input" data-course-field="teacher" type="text" placeholder="${getI18n('schedule', 'courseTeacherPlaceholder')}" value="${escapeHtml(form.teacher)}" />
+                </div>
+              </label>
+              <div class="weui-cell schedule-option-cell">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'courseWeekday')}</span></div>
+                <div class="weui-cell__bd schedule-form-options schedule-form-options--weekday">${weekdayLabels.map((name, i) => {
+                    const val = i + 1;
+                    return renderScheduleOption(name, { value: val }, form.weekday === val);
+                }).join('')}</div>
+              </div>
+              <div class="weui-cell schedule-option-cell">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'coursePeriod')}</span></div>
+                <div class="weui-cell__bd schedule-form-options schedule-form-options--section" id="js_section_options">${sectionHtml}</div>
+              </div>
+              <div class="weui-cell schedule-option-cell">
+                <div class="weui-cell__hd"><span class="weui-label">${getI18n('schedule', 'courseWeek')}</span></div>
+                <div class="weui-cell__bd schedule-form-options schedule-form-options--week" id="js_week_options">${weekHtml}</div>
+              </div>
+            </div>
+            <div class="schedule-submit-wrap">
+              <a role="button" id="js_add_course_btn" class="weui-btn weui-btn_primary" href="javascript:;" style="display: inline-block; width: auto;">${getI18n('schedule', submitKey)}</a>
+            </div>
+          </div>
+        </div>
+        <div data-tab-content="manage" class="schedule-dialog-tab-manage" id="js_manage_list"></div>
+      </div>
+    </div>`;
+
+    document.body.appendChild(wrap);
+
+    requestAnimationFrame(() => {
+        wrap.classList.add('schedule-dialog-wrap--visible');
+    });
+
+    initScheduleFormOptions();
+    bindScheduleActionEvents();
+
+    if (scheduleActionState.tab === 'manage') {
+        switchScheduleActionTab('manage');
+    }
+}
+
+function closeScheduleActionPanel() {
+    const wrap = document.getElementById('js_schedule_dialog_wrap');
+    if (!wrap) return;
+    resetSwipedCard();
+    wrap.classList.remove('schedule-dialog-wrap--visible');
+    setTimeout(() => wrap.remove(), DIALOG_CLOSE_DELAY);
+    scheduleActionState = null;
+}
+
+function initScheduleFormOptions() {
+    document.querySelectorAll('.schedule-form-options').forEach(grid => {
+        const isWeekday = grid.classList.contains('schedule-form-options--weekday');
+
+        let pointerActive = false;
+        let pointerId = null;
+        let dragTargetState = true;
+        let lastOpt = null;
+        let suppressClickUntil = 0;
+
+        function getOptionFromPoint(x, y) {
+            const el = document.elementFromPoint(x, y);
+            const opt = el?.closest?.('.schedule-form-option');
+            if (!opt || opt.closest('.schedule-form-options') !== grid) return null;
+            return opt;
+        }
+
+        function setOptionActive(opt, active) {
+            if (!opt || opt.closest('.schedule-form-options') !== grid) return;
+            if (isWeekday) {
+                grid.querySelectorAll('.schedule-form-option').forEach(o => {
+                    o.dataset.active = active && o === opt ? 'true' : 'false';
+                });
+                return;
+            }
+            opt.dataset.active = active ? 'true' : 'false';
+        }
+
+        function applyPointerOption(opt) {
+            if (!opt) return;
+            if (isWeekday) {
+                setOptionActive(opt, opt.dataset.active !== 'true');
+            } else {
+                setOptionActive(opt, dragTargetState);
+            }
+        }
+
+        grid.addEventListener('pointerdown', e => {
+            if (e.button !== undefined && e.button !== 0) return;
+            const opt = getOptionFromPoint(e.clientX, e.clientY);
+            if (!opt) return;
+            pointerActive = true;
+            pointerId = e.pointerId;
+            lastOpt = opt;
+            suppressClickUntil = Date.now() + 500;
+            if (!isWeekday) {
+                dragTargetState = opt.dataset.active !== 'true';
+            }
+            applyPointerOption(opt);
+            try { grid.setPointerCapture(e.pointerId); } catch {}
+            e.preventDefault();
+        });
+
+        grid.addEventListener('pointermove', e => {
+            if (!pointerActive || e.pointerId !== pointerId) return;
+            const opt = getOptionFromPoint(e.clientX, e.clientY);
+            if (!opt || opt === lastOpt) return;
+            lastOpt = opt;
+            suppressClickUntil = Date.now() + 500;
+            applyPointerOption(opt);
+            e.preventDefault();
+        });
+
+        function endPointer(e) {
+            if (!pointerActive || e.pointerId !== pointerId) return;
+            pointerActive = false;
+            pointerId = null;
+            lastOpt = null;
+            suppressClickUntil = Date.now() + 500;
+            try { grid.releasePointerCapture(e.pointerId); } catch {}
+        }
+
+        grid.addEventListener('pointerup', endPointer);
+        grid.addEventListener('pointercancel', endPointer);
+        grid.addEventListener('lostpointercapture', () => {
+            pointerActive = false;
+            pointerId = null;
+            lastOpt = null;
+            suppressClickUntil = Date.now() + 500;
+        });
+
+        grid.addEventListener('click', e => {
+            if (Date.now() < suppressClickUntil) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            const opt = e.target.closest('.schedule-form-option');
+            if (!opt || opt.closest('.schedule-form-options') !== grid) return;
+            if (isWeekday) {
+                setOptionActive(opt, true);
+            } else {
+                setOptionActive(opt, opt.dataset.active !== 'true');
+            }
+        });
+    });
+}
+
+function readScheduleActionForm() {
+    const fieldValue = field => document.querySelector(`[data-course-field="${field}"]`)?.value?.trim() || '';
+    const activeOptions = selector => document.querySelectorAll(`${selector} .schedule-form-option[data-active="true"]`);
+
+    const weekdayEl = activeOptions('.schedule-form-options--weekday')[0];
+    const sectionsSet = new Set();
+    activeOptions('#js_section_options').forEach(el => {
+        parseIntegerList(el.dataset.sections).forEach(n => sectionsSet.add(n));
+    });
+
+    return {
+        name: fieldValue('name'),
+        location: fieldValue('location'),
+        teacher: fieldValue('teacher'),
+        weekday: parseInt(weekdayEl?.dataset.value, 10) || 0,
+        sections: [...sectionsSet],
+        weeks: Array.from(activeOptions('#js_week_options'), el => parseInt(el.dataset.value, 10)).filter(n => !Number.isNaN(n))
+    };
+}
+
+function saveScheduleActionForm() {
+    if (!scheduleActionState) return;
+    const { name, location, teacher, weekday, sections, weeks } = readScheduleActionForm();
+
+    if (!name) {
+        toast.warn(getI18n('schedule', 'errorCourseNameRequired'));
+        return;
+    }
+
+    const termId = scheduleActionState.termId || currentSemesterId;
+    const payload = { name, location, teacher, weekday, sections, weeks, updatedAt: Date.now() };
+
+    if (scheduleActionState.mode === 'edit' && scheduleActionState.editingId) {
+        const existingItem = getCustomCourseItem(scheduleActionState.editingId);
+        if (existingItem) {
+            upsertCustomCourseItem({
+                ...existingItem,
+                ...payload,
+                termId: existingItem.termId || termId
+            });
+        }
+    } else if (scheduleActionState.mode === 'edit' && scheduleActionState.sourceCourseHash) {
+        const existingOverride = getCustomCourseItems().find(i => i.type === 'override' && i.targetHash === scheduleActionState.sourceCourseHash);
+        upsertCustomCourseItem({
+            ...payload,
+            id: existingOverride?.id || createCustomCourseId(),
+            type: 'override',
+            targetHash: scheduleActionState.sourceCourseHash,
+            termId
+        });
+    } else {
+        upsertCustomCourseItem({
+            ...payload,
+            id: createCustomCourseId(),
+            type: 'add',
+            termId
+        });
+    }
+
+    resetScheduleActionAddForm();
+    switchScheduleActionTab('manage');
+    refreshPageSchedule();
+}
+
+function fillScheduleActionForm(form) {
+    ['name', 'location', 'teacher'].forEach(field => {
+        const el = document.querySelector(`[data-course-field="${field}"]`);
+        if (el) el.value = form[field] || '';
+    });
+
+    const weekday = form.weekday ? Number(form.weekday) : 0;
+    document.querySelectorAll('.schedule-form-options--weekday .schedule-form-option').forEach(el => {
+        el.dataset.active = Number(el.dataset.value) === weekday ? 'true' : 'false';
+    });
+
+    const sectionSet = new Set((form.sections || []).map(Number));
+    document.querySelectorAll('#js_section_options .schedule-form-option').forEach(el => {
+        const raw = el.dataset.sections || el.dataset.value || '';
+        const vals = parseIntegerList(raw);
+        el.dataset.active = vals.length > 0 && vals.every(v => sectionSet.has(v)) ? 'true' : 'false';
+    });
+
+    const weekSet = new Set((form.weeks || []).map(Number));
+    document.querySelectorAll('#js_week_options .schedule-form-option').forEach(el => {
+        el.dataset.active = weekSet.has(Number(el.dataset.value)) ? 'true' : 'false';
+    });
+}
+
+function getDefaultScheduleActionForm(termId) {
+    const todayWd = getTodayWeekday();
+    return {
+        name: '',
+        location: '',
+        teacher: '',
+        weekday: todayWd,
+        sections: [],
+        weeks: currentWeek > 0 && termId === currentSemesterId ? [currentWeek] : []
+    };
+}
+
+function resetScheduleActionAddForm() {
+    if (!scheduleActionState) return;
+    const termId = scheduleActionState.termId || currentSemesterId;
+    const form = getDefaultScheduleActionForm(termId);
+
+    scheduleActionState.mode = 'add';
+    scheduleActionState.editingId = '';
+    scheduleActionState.sourceCourseHash = '';
+    scheduleActionState.form = form;
+
+    updateScheduleActionModeText('add');
+    fillScheduleActionForm(form);
+}
+
+function enterScheduleCustomEditMode(item) {
+    resetSwipedCard();
+
+    scheduleActionState.mode = 'edit';
+    scheduleActionState.tab = 'add';
+    scheduleActionState.editingId = item.id;
+    scheduleActionState.sourceCourseHash = '';
+    scheduleActionState.termId = item.termId || currentSemesterId;
+    scheduleActionState.form = {
+        name: item.name || '',
+        location: item.location || '',
+        teacher: item.teacher || '',
+        weekday: item.weekday != null ? item.weekday : 0,
+        sections: [...(item.sections || [])],
+        weeks: [...(item.weeks || [])]
+    };
+
+    updateScheduleActionModeText('edit');
+    fillScheduleActionForm(scheduleActionState.form);
+    switchScheduleActionTab('add', { keepEdit: true });
+}
+
+function switchScheduleActionTab(tab, options = {}) {
+    if (!scheduleActionState) return;
+    const oldTab = scheduleActionState.tab;
+    resetSwipedCard();
+
+    const addTab = document.querySelector('[data-tab-content="add"]');
+    const manageTab = document.querySelector('[data-tab-content="manage"]');
+
+    document.querySelectorAll('.schedule-dialog-tab').forEach(el => {
+        const isActive = el.dataset.tab === tab;
+        el.dataset.active = isActive ? 'true' : 'false';
+    });
+
+    if (tab === 'manage') {
+        if (options.keepEdit !== true) {
+            resetScheduleActionAddForm();
+        }
+        scheduleActionState.tab = tab;
+        addTab.classList.add('schedule-dialog-tab-add--hidden');
+        manageTab.style.display = 'block';
+        renderScheduleManageList();
+    } else {
+        if (options.keepEdit !== true && oldTab !== 'add') {
+            resetScheduleActionAddForm();
+        }
+        scheduleActionState.tab = tab;
+        addTab.classList.remove('schedule-dialog-tab-add--hidden');
+        manageTab.style.display = 'none';
+    }
+}
+
+function renderScheduleManageList() {
+    const listEl = document.getElementById('js_manage_list');
+    if (!listEl) return;
+    const items = getCustomCourseItems().filter(i => i.termId === currentSemesterId).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (!items.length) {
+        listEl.innerHTML = `<div style="text-align: center; color: var(--weui-FG-1); padding: 40px 0;">${getI18n('schedule', 'noCustomCourse')}</div>`;
+        return;
+    }
+
+    const confirmDeleteText = getI18n('schedule', 'confirmDelete') || 'Continue';
+    const sectionSuffix = getI18n('schedule', 'sectionSuffix');
+    const isChinese = isChineseScheduleLocale();
+    const rowHtml = (text, extraClass = '') => `<div class="schedule-manage-card-row${extraClass}${!text ? ' schedule-manage-card-row--empty' : ''}">${text || '\u00A0'}</div>`;
+
+    let html = '<div class="schedule-manage-list">';
+    for (const item of items) {
+        const isInvalid = item.type === 'override' && !getBaseCourseByHash(item.targetHash);
+        const sectionText = formatSections(item.sections || []);
+        const weekText = formatWeeks(item.weeks || []);
+        const nameRow = item.name ? escapeHtml(item.name) : '';
+        const weekLabel = weekText ? (isChinese ? `第${weekText}周` : `Week ${weekText}`) : '';
+        const dayLabel = item.weekday ? getWeekdayLabel(item.weekday) : '';
+        const sectionLabel = sectionText ? `${sectionText}${sectionSuffix}` : '';
+        const metaRow = [weekLabel, dayLabel, sectionLabel].filter(Boolean).join(' ');
+        const locRow = [item.location ? escapeHtml(item.location) : '', item.teacher ? escapeHtml(item.teacher) : ''].filter(Boolean).join(' / ');
+
+        html += `<div class="schedule-manage-card-wrap" data-id="${escapeHtml(item.id)}">
+            <button type="button" class="schedule-manage-card-delete-bg js_custom_confirm_delete">${confirmDeleteText}</button>
+            <div class="schedule-manage-card${isInvalid ? ' schedule-manage-card--invalid' : ''}">
+                <div class="schedule-manage-card-main">
+                    ${rowHtml(nameRow)}
+                    ${rowHtml(metaRow, ' schedule-manage-card-row--meta')}
+                    ${rowHtml(locRow, ' schedule-manage-card-row--meta')}
+                </div>
+                <div class="schedule-manage-card-actions">
+                    <button type="button" class="schedule-manage-card-action schedule-manage-card-action--edit js_custom_edit" data-id="${escapeHtml(item.id)}"><i class="ri-pencil-line"></i></button>
+                    <button type="button" class="schedule-manage-card-action schedule-manage-card-action--delete js_custom_delete" data-id="${escapeHtml(item.id)}"><i class="ri-delete-bin-line"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }
+    html += '</div>';
+    listEl.innerHTML = html;
+
+    initCardSwipe();
+}
+
+function initCardSwipe() {
+    const wraps = document.querySelectorAll('.schedule-manage-card-wrap');
+
+    wraps.forEach(wrap => {
+        const card = wrap.querySelector('.schedule-manage-card');
+        if (!card) return;
+
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+
+        card.addEventListener('touchstart', e => {
+            if (swipedCardWrapEl && swipedCardWrapEl !== wrap) {
+                resetSwipedCard();
+            }
+            startX = e.touches[0].clientX;
+            currentX = 0;
+            isSwiping = true;
+            card.style.transition = 'none';
+        }, { passive: true });
+
+        card.addEventListener('touchmove', e => {
+            if (!isSwiping) return;
+            const deltaX = e.touches[0].clientX - startX;
+            if (deltaX > 0) return;
+            const maxSwipe = card.offsetWidth * DELETE_REVEAL_RATIO;
+            currentX = Math.max(deltaX, -maxSwipe);
+            card.style.transform = `translateX(${currentX}px)`;
+        }, { passive: true });
+
+        card.addEventListener('touchend', () => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            card.style.transition = 'transform 0.2s ease';
+            card.style.transform = '';
+            if (Math.abs(currentX) > Math.max(SWIPE_THRESHOLD, card.offsetWidth * 0.18)) {
+                openDeleteConfirm(wrap);
+            } else {
+                resetSwipedCard();
+            }
+        });
+    });
+}
+
+function bindScheduleActionEvents() {
+    const wrap = document.getElementById('js_schedule_dialog_wrap');
+    if (!wrap) return;
+
+    wrap.addEventListener('click', e => {
+        const closeBtn = e.target.closest('.schedule-dialog-close');
+        if (closeBtn) { resetSwipedCard(); closeScheduleActionPanel(); return; }
+
+        const mask = e.target.closest('.weui-mask');
+        if (mask) { resetSwipedCard(); closeScheduleActionPanel(); return; }
+
+        const confirmDeleteBtn = e.target.closest('.js_custom_confirm_delete');
+        if (confirmDeleteBtn) {
+            const cardWrap = confirmDeleteBtn.closest('.schedule-manage-card-wrap');
+            if (!cardWrap) return;
+            const id = cardWrap.dataset.id;
+            if (!id) return;
+            deleteCustomCourseItem(id);
+            resetSwipedCard();
+            renderScheduleManageList();
+            refreshPageSchedule();
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.js_custom_delete');
+        if (deleteBtn) {
+            e.preventDefault();
+            const cardWrap = deleteBtn.closest('.schedule-manage-card-wrap');
+            openDeleteConfirm(cardWrap);
+            return;
+        }
+
+        if (swipedCardWrapEl) {
+            resetSwipedCard();
+            return;
+        }
+
+        const tabBtn = e.target.closest('.schedule-dialog-tab');
+        if (tabBtn) {
+            const tab = tabBtn.dataset.tab;
+            if (tab === 'add' || tab === 'manage') switchScheduleActionTab(tab);
+            return;
+        }
+
+        const submitBtn = e.target.closest('#js_add_course_btn');
+        if (submitBtn) { saveScheduleActionForm(); return; }
+
+        const editBtn = e.target.closest('.js_custom_edit');
+        if (editBtn) {
+            resetSwipedCard();
+            const id = editBtn.dataset.id;
+            const item = getCustomCourseItem(id);
+            if (item) {
+                enterScheduleCustomEditMode(item);
+            }
+            return;
+        }
+    });
+}
+
+// ---- Main Load ----
+
 export async function load(container) {
+    pageContainer = container;
     const response = await fetch('/assets/subpages/schedule/schedule.html');
     const html = await response.text();
     container.innerHTML = html;
     await translatePage('schedule', container);
 
-    // 检查是否首次加载该页面
     const isFirstLoad = container.dataset.firstLoad === 'true';
 
-    // 检查是否自动加载课程数据
     const savedUser = getSavedUser();
     const isLoggedIn = savedUser?.isLoggedIn !== false;
 
-    // 加载课程数据并获取当前学期和周次
     if (isLoggedIn && savedUser) {
-        const loaded = await loadCourse('merge');
+        const loaded = await loadCourse();
         courseDataLoaded = !!loaded;
         if (loaded) {
-            //调用方法获取当前学期及周次
-            const semesterAndWeek = getCurrentSemesterAndWeek();
-            if (semesterAndWeek) {
-                currentSemesterId = semesterAndWeek.semesterId;
-                currentWeek = semesterAndWeek.week;
-                if (semesterAndWeek.week !== 0) {
-                    currentSemesterAndWeek = semesterAndWeek;
-                }
-            }
-            // 仅在首次加载页面时自动更新课程数据（后台执行，不阻塞显示）
+            syncCurrentSemesterAndWeek();
             if (isFirstLoad && startupUpdateEnabled()) {
-                refreshCourseData().then(async () => {
-                    // 刷新完成后重新加载课程数据并更新界面
-                    await loadCourse('merge');
-                    const semesterAndWeek = getCurrentSemesterAndWeek();
-                    if (semesterAndWeek) {
-                        currentSemesterId = semesterAndWeek.semesterId;
-                        currentWeek = semesterAndWeek.week;
-                        if (semesterAndWeek.week !== 0) {
-                            currentSemesterAndWeek = semesterAndWeek;
-                        }
+                refreshCourseData().then(async (remoteUpdated) => {
+                    const loaded = await loadCourse();
+                    courseDataLoaded = !!loaded;
+
+                    if (remoteUpdated && loaded) {
+
+                        syncCurrentSemesterAndWeek();
+                        currentDay = null;
+                        refreshScheduleView(container);
                     }
-                    // 重置日视图日期为今天
-                    currentDay = null;
-                    updateCurrentSemester(container);
-                    updateContentView(container);
-                    updateCurrentWeek(container);
-                    renderSchedule(container);
                 });
             }
         } else {
@@ -871,39 +1433,37 @@ export async function load(container) {
     } else {
         courseDataLoaded = false;
     }
-    //更新顶部工具栏的学期、视图、周次
-    updateCurrentSemester(container);
-    updateContentView(container);
-    updateCurrentWeek(container);
-    //根据选择加载对应视图的课程
-    renderSchedule(container);
+    refreshScheduleView(container);
 
-    // 监听登录成功事件，刷新课程数据（使用 once 防止重复绑定）
-    const handleLoginSuccess = async () => {
-        const loaded = await loadCourse('merge');
+    if (loginSuccessHandler) {
+        window.removeEventListener('login-success', loginSuccessHandler);
+    }
+
+    loginSuccessHandler = async () => {
+        const loaded = await loadCourse();
         courseDataLoaded = !!loaded;
-        if (loaded) {
-            const semesterAndWeek = getCurrentSemesterAndWeek();
-            if (semesterAndWeek) {
-                currentSemesterId = semesterAndWeek.semesterId;
-                currentWeek = semesterAndWeek.week;
-                if (semesterAndWeek.week !== 0) {
-                    currentSemesterAndWeek = semesterAndWeek;
-                }
-            }
-        }
-        updateCurrentSemester(container);
-        updateContentView(container);
-        updateCurrentWeek(container);
-        renderSchedule(container);
+        if (loaded) syncCurrentSemesterAndWeek();
+        refreshScheduleView(container);
+        loginSuccessHandler = null;
     };
 
-    // 使用 once: true 确保只执行一次
-    window.addEventListener('login-success', handleLoginSuccess, { once: true });
+    window.addEventListener('login-success', loginSuccessHandler, { once: true });
 
-    // 使用事件委托确保点击事件有效
-    container.addEventListener('click', async (e) => {
-        //学期选择器
+    if (scheduleClickHandler) {
+        container.removeEventListener('click', scheduleClickHandler);
+    }
+
+    scheduleClickHandler = async (e) => {
+        const actionFab = e.target.closest('#js_schedule_action_fab');
+        if (actionFab) {
+            openScheduleActionPanel({
+                mode: 'add',
+                tab: 'add',
+                termId: currentSemesterId
+            });
+            return;
+        }
+
         const currentSemester = e.target.closest('#js_current_semester');
         if (currentSemester) {
             const savedUser = getSavedUser();
@@ -922,7 +1482,6 @@ export async function load(container) {
                     onChange: (value) => {
                         currentSemesterId = value;
                         currentWeek = 0;
-                        // 切换学期后清理周次选项缓存
                         weekOptionsCache = null;
                         weekOptionsCacheKey = null;
                         updateCurrentSemester(container);
@@ -936,7 +1495,6 @@ export async function load(container) {
             return;
         }
 
-        //周次选择器
         const currentWeekBtn = e.target.closest('#js_current_week');
         if (currentWeekBtn) {
             const savedUser = getSavedUser();
@@ -949,8 +1507,7 @@ export async function load(container) {
             if (semesterConfig) {
                 const totalWeeks = semesterConfig.totalWeeks;
 
-                // 使用缓存避免每次都重新创建数组
-                const cacheKey = `${currentSemesterId}-${currentSemesterAndWeek?.semesterId}-${currentSemesterAndWeek?.week}`;
+                const cacheKey = `${currentSemesterId}-${totalWeeks}-${currentSemesterAndWeek?.semesterId}-${currentSemesterAndWeek?.week}`;
                 if (weekOptionsCacheKey !== cacheKey) {
                     weekOptionsCacheKey = cacheKey;
                     weekOptionsCache = [
@@ -972,7 +1529,6 @@ export async function load(container) {
                     selected: String(currentWeek),
                     onChange: (value) => {
                         currentWeek = Number(value);
-                        // 切换周次后需要更新缓存
                         weekOptionsCacheKey = null;
                         weekOptionsCache = null;
                         updateCurrentWeek(container);
@@ -985,7 +1541,6 @@ export async function load(container) {
             return;
         }
 
-        //视图选择器
         const contentView = e.target.closest('#js_content_view');
         if (contentView) {
             const options = Object.values(viewConfig).map(v => ({
@@ -1007,10 +1562,8 @@ export async function load(container) {
             return;
         }
 
-        //刷新按钮
         const refresh = e.target.closest('#js_refresh');
         if (refresh) {
-            // 防重复点击
             if (isRefreshing) return;
             isRefreshing = true;
 
@@ -1028,33 +1581,27 @@ export async function load(container) {
             );
 
             try {
-                await refreshCourseData();
-                scheduleView = 'weekView';
-                currentSemesterId = null;
-                currentWeek = 0;
-                currentDay = null;
-                dailySectionCount = 0;
-                timeSlots = [];
-                currentSemesterAndWeek = null;
-                courseDataLoaded = false;
-                const loaded = await loadCourse('merge');
+                const remoteUpdated = await refreshCourseData();
+                const loaded = await loadCourse();
                 courseDataLoaded = !!loaded;
+
                 if (loaded) {
-                    const semesterAndWeek = getCurrentSemesterAndWeek();
-                    if (semesterAndWeek) {
-                        currentSemesterId = semesterAndWeek.semesterId;
-                        currentWeek = semesterAndWeek.week;
-                        if (semesterAndWeek.week !== 0) {
-                            currentSemesterAndWeek = semesterAndWeek;
-                        }
+                    if (remoteUpdated) {
+                        scheduleView = 'weekView';
+                        currentSemesterId = null;
+                        currentWeek = 0;
+                        currentDay = null;
+                        dailySectionCount = 0;
+                        timeSlots = [];
+                        currentSemesterAndWeek = null;
+
+                        syncCurrentSemesterAndWeek();
                     }
+
+                    refreshScheduleView(container);
                 } else {
                     toast.warn(getI18n('schedule', 'loadCourseError'));
                 }
-                updateCurrentSemester(container);
-                updateContentView(container);
-                updateCurrentWeek(container);
-                renderSchedule(container);
             } catch (error) {
                 console.error('Refresh error:', error);
                 toast.warn(getI18n('schedule', 'loadCourseError'));
@@ -1062,5 +1609,7 @@ export async function load(container) {
                 isRefreshing = false;
             }
         }
-    });
+    };
+
+    container.addEventListener('click', scheduleClickHandler);
 }

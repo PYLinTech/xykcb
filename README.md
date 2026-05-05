@@ -34,7 +34,9 @@ xykcb/
 │   │   ├── half_radio_dialog.js    # 半屏单选弹窗组件
 │   │   ├── toast.js                # Toast 提示组件
 │   │   ├── calendar_picker.js      # 日历选择器组件
+│   │   ├── course_data_adapter.js  # 课程数据响应适配器
 │   │   ├── course_parser.js        # 课程数据解析器
+│   │   ├── custom_course_store.js  # 自定义课程本地存储
 │   │   └── notice_dialog.js        # 公告/导出对话框组件
 │   ├── init/
 │   │   ├── init.js                 # 初始化入口
@@ -70,6 +72,7 @@ xykcb/
 | **字体** | 6种字体可选：系统/钉钉进步体/MiSans/霞鹜文楷/平方三生体/游趣体 |
 | **弹窗** | 半屏单选对话框、标准对话框、导出选择对话框，动画效果 |
 | **设置** | 语言/主题/字体/颜色切换（持久化到 localStorage） |
+| **自定义课程** | 支持新增、编辑、删除和覆盖远程课程，按学校和学期本地保存 |
 | **成绩导出** | 支持导出为 Excel 表格和 PNG 图片，中英文双语支持 |
 | **远程功能** | 插件式功能扩展，通过 API 动态加载 |
 | **公告系统** | 远程公告配置，用户协议后展示 |
@@ -243,15 +246,44 @@ xykcb/
   - `showNotice(title, content, maskClosable, onClose)` - 显示公告弹窗
   - `showExportDialog({ title, options, onChange, maskClosable })` - 显示导出选择
 
-#### 2.8 课程数据解析器 (`course_parser.js`)
-- **功能**：解析和管理课程数据
-- **加载模式**：`local`（本地存储）、`online`（在线加载）、`merge`（合并加载）
+#### 2.8 课程数据适配器 (`course_data_adapter.js`)
+
+- **功能**：将接口返回的制表符文本课程数据转换为应用内部结构
+- **数据块**：支持 `@terms` 和 `@courses` 两类数据块
 - **数据处理**：
-  - 重复 ID 课程智能合并
+  - 处理字段继承和 `\\N` 空值
+  - 构建学期配置、时间段和可合并大节
+  - 按课程 hash 建立索引，保留学期课程顺序
+- **API**：
+  - `parseCourseDataResponse(data)` - 解析接口响应并返回标准课程数据
+
+#### 2.9 自定义课程存储 (`custom_course_store.js`)
+
+- **功能**：管理用户本地新增课程和远程课程覆盖项
+- **存储键名**：`schedule_custom_courses`
+- **存储维度**：按学校和学期隔离，避免不同账号课程互相影响
+- **特性**：
+  - 支持新增课程 (`add`) 和覆盖远程课程 (`override`)
+  - 保存后广播 `custom-courses-changed` 事件刷新课程缓存
+  - 标准化周次、星期、节次数组
+- **API**：
+  - `getCustomCourseItems()` - 获取所有自定义课程项
+  - `getCustomCourseItem(id)` - 获取指定课程项
+  - `upsertCustomCourseItem(item)` - 新增或更新课程项
+  - `deleteCustomCourseItem(id)` - 删除课程项
+  - `createCustomCourseId()` - 创建本地课程 ID
+
+#### 2.10 课程数据解析器 (`course_parser.js`)
+- **功能**：解析和管理课程数据
+- **加载来源**：从 `course_data` 读取标准化后的课程数据
+- **数据处理**：
+  - 按 hash 读取远程课程
+  - 合并本地新增课程和远程课程覆盖项
   - 按周次/日期查询课程
   - 课程搜索（名称/地点/教师）
+  - 缓存课程排序、周视图和日视图查询结果
 - **API**：
-  - `loadCourse(mode)` - 加载课程数据
+  - `loadCourse()` - 加载课程数据
   - `getAvailableSemesters()` - 获取所有可用学期
   - `getSemesterConfig(semesterId)` - 获取学期配置
   - `getCourses(semesterId)` - 获取学期课程
@@ -261,6 +293,8 @@ xykcb/
   - `getCurrentSemesterAndWeek()` - 获取当前学期和周次
   - `searchCourses(semesterId, keyword)` - 搜索课程
   - `formatWeeks(weeks)` - 格式化周次数组
+  - `clearCourseCaches(termId?)` - 清理课程查询缓存
+  - `getBaseCourseByHash(hash)` - 获取远程原始课程
 
 ### 3. 子页面模块 (`/assets/subpages/`)
 

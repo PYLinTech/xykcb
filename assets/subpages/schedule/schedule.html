@@ -36,6 +36,447 @@
     body:not([data-weui-theme="light"]) .course-bg-8 { background-color: #4a5c99; }
     body:not([data-weui-theme="light"]) .course-bg-9 { background-color: #994a4a; }
 }
+
+/* 悬浮圆形玻璃按钮（仿 grades back-top） */
+.schedule-action-fab {
+    position: fixed;
+    right: 18px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    color: var(--weui-FG-0);
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.12s ease, opacity 0.12s ease;
+}
+.schedule-action-fab:active {
+    transform: scale(0.92);
+    background-color: var(--weui-FG-5);
+    opacity: 0.9;
+}
+
+/* 弹窗 wrap：固定全屏，flex 居中 */
+.schedule-dialog-wrap {
+    position: fixed; inset: 0; z-index: 5000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.schedule-dialog-wrap.schedule-dialog-wrap--visible {
+    opacity: 1; visibility: visible;
+}
+
+/* 遮罩：weui-mask，z-index 低于 panel */
+.schedule-dialog-wrap .weui-mask {
+    position: absolute; inset: 0;
+    opacity: 0; transition: opacity 0.2s ease;
+    pointer-events: auto;
+}
+.schedule-dialog-wrap.schedule-dialog-wrap--visible .weui-mask {
+    opacity: 1;
+}
+
+/* 面板：居中，z-index 高于 mask，pointer-events: auto */
+.schedule-dialog-panel {
+    position: relative; z-index: 5000;
+    width: 90%; max-width: 460px;
+    max-height: 90vh;
+    background: var(--weui-BG-2);
+    border-radius: 16px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    pointer-events: auto;
+    transform: scale(0.92); opacity: 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.schedule-dialog-wrap.schedule-dialog-wrap--visible .schedule-dialog-panel {
+    transform: scale(1); opacity: 1;
+}
+
+/* 弹窗头部 */
+.schedule-dialog-hd {
+    flex-shrink: 0; display: flex; align-items: center;
+    padding: 8px 12px 12px 8px;
+}
+.schedule-dialog-tab-text {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 400;
+}
+
+.schedule-dialog-tab {
+    flex-shrink: 0;
+    padding: 8px 14px 12px;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--weui-FG-1);
+    cursor: pointer;
+    position: relative;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    transition: color .16s ease;
+}
+@media (hover: hover) {
+    .schedule-dialog-tab:hover {
+        color: var(--weui-FG-1);
+        background: transparent;
+    }
+}
+.schedule-dialog-tab[data-active="true"] {
+    color: var(--weui-BRAND);
+    font-weight: 400;
+    background: transparent;
+    border: none;
+}
+@media (hover: hover) {
+    .schedule-dialog-tab[data-active="true"]:hover {
+        color: var(--weui-BRAND);
+        background: transparent;
+    }
+}
+.schedule-dialog-indicator {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -7px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--weui-BRAND);
+    opacity: 0;
+    transform: scaleX(.6);
+    transform-origin: center;
+    transition: opacity .16s ease, transform .16s ease;
+    pointer-events: none;
+}
+.schedule-dialog-tab[data-active="true"] .schedule-dialog-indicator {
+    opacity: 1;
+    transform: scaleX(1);
+}
+.schedule-dialog-close {
+    margin-left: auto; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--weui-FG-1); cursor: pointer;
+    border-radius: 50%; flex-shrink: 0;
+}
+
+/* 弹窗内容区 */
+.schedule-dialog-bd {
+    flex: 1; min-height: 0; position: relative;
+    display: flex; flex-direction: column;
+}
+
+/* 添加/编辑容器：负责撑高弹窗，高度受限时可滚动 */
+.schedule-dialog-tab-add {
+    display: flex; flex-direction: column;
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+.schedule-dialog-tab-add::-webkit-scrollbar {
+    display: none;
+}
+.schedule-dialog-tab-add--hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* 管理容器：覆盖在同一区域，不改变弹窗高度 */
+.schedule-dialog-tab-manage {
+    position: absolute; inset: 0;
+    display: none; overflow-y: auto;
+    padding: 10px 16px; box-sizing: border-box;
+}
+
+/* 表单样式 */
+.schedule-dialog-panel .weui-cells__group_form .weui-cells {
+    margin-top: 0; margin-left: 8px; margin-right: 8px;
+    background: transparent;
+}
+.schedule-dialog-panel .weui-cells:before { border-top: none !important; }
+.schedule-dialog-panel .weui-cell {
+    padding-top: 10px; padding-bottom: 10px; min-height: unset;
+}
+.schedule-dialog-panel .schedule-option-cell {
+    background: transparent !important; align-items: flex-start;
+}
+.schedule-option-cell .weui-cell__hd { padding-top: 5px; }
+.schedule-dialog-panel .weui-label {
+    width: 40px; color: var(--weui-FG-0); font-size: 14px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.schedule-dialog-panel .weui-input {
+    color: var(--weui-FG-0); font-size: 14px;
+}
+
+/* 选项网格 */
+.schedule-form-options {
+    width: 100%; display: grid; gap: 2px;
+}
+.schedule-form-options--weekday { grid-template-columns: repeat(7, 1fr); }
+.schedule-form-options--section { grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)); }
+.schedule-form-options--week { grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); }
+
+/* 选项按钮：无按下动画，只做选中状态变化 */
+.schedule-form-option {
+    min-width: 0; height: 32px; border-radius: 9px;
+    border: 1px solid rgba(0,0,0,0.04);
+    background: #F7F8FB;
+    color: var(--weui-FG-0); display: inline-flex; align-items: center;
+    justify-content: center; box-sizing: border-box; font-size: 13px;
+    font-weight: 500; line-height: 1; cursor: pointer; user-select: none;
+    touch-action: pan-y;
+    transition: background-color .14s ease, color .14s ease, border-color .14s ease;
+}
+@media (hover: hover) {
+    .schedule-form-option:hover {
+        background: #e9ecf1;
+    }
+}
+.schedule-form-options--week .schedule-form-option {
+    height: 31px; border-radius: 8px; font-size: 12px;
+}
+.schedule-form-option[data-active="true"] {
+    border-color: var(--weui-BRAND); background: var(--weui-BRAND);
+    color: #fff; font-weight: 600;
+}
+@media (hover: hover) {
+    .schedule-form-option[data-active="true"]:hover {
+        background: var(--weui-BRAND);
+        border-color: var(--weui-BRAND);
+        color: #fff;
+    }
+}
+
+/* 深色模式表单选项 */
+[data-weui-theme="dark"] .schedule-form-option {
+    background: #1F2023;
+    border-color: rgba(255,255,255,0.06);
+}
+@media (hover: hover) {
+    [data-weui-theme="dark"] .schedule-form-option:hover {
+        background: #2A2C31;
+    }
+}
+[data-weui-theme="dark"] .schedule-form-option[data-active="true"] {
+    background: var(--weui-BRAND);
+    border-color: var(--weui-BRAND);
+    color: #fff;
+}
+@media (hover: hover) {
+    [data-weui-theme="dark"] .schedule-form-option[data-active="true"]:hover {
+        background: var(--weui-BRAND);
+        border-color: var(--weui-BRAND);
+        color: #fff;
+    }
+}
+@media (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .schedule-form-option {
+        background: #1F2023;
+        border-color: rgba(255,255,255,0.06);
+    }
+    body:not([data-weui-theme="light"]) .schedule-form-option[data-active="true"] {
+        background: var(--weui-BRAND);
+        border-color: var(--weui-BRAND);
+        color: #fff;
+    }
+}
+@media (hover: hover) and (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .schedule-form-option:hover {
+        background: #2A2C31;
+    }
+    body:not([data-weui-theme="light"]) .schedule-form-option[data-active="true"]:hover {
+        background: var(--weui-BRAND);
+        border-color: var(--weui-BRAND);
+        color: #fff;
+    }
+}
+
+/* 提交按钮 */
+.schedule-submit-wrap {
+    text-align: center; margin: 32px 0 16px;
+}
+
+/* 管理列表 */
+.schedule-manage-list {
+    display: flex; flex-direction: column; gap: 10px;
+}
+
+/* 卡片包裹层：底层删除 + 上层卡片滑动露出 */
+.schedule-manage-card-wrap {
+    --delete-reveal: 20%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: transparent;
+}
+
+/* 红色确认删除按钮：底层，默认隐藏，上下各收 1px 与卡片垂直居中 */
+.schedule-manage-card-delete-bg {
+    position: absolute;
+    top: 1px;
+    right: 0;
+    bottom: 1px;
+    width: 50%;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    text-align: right;
+    padding-right: 16px;
+    box-sizing: border-box;
+    background: var(--weui-RED);
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease, visibility .16s ease;
+}
+.schedule-manage-card-wrap.is-delete-open .schedule-manage-card-delete-bg {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* 卡片前景：z-index 高于删除背景 */
+.schedule-manage-card {
+    position: relative;
+    z-index: 1;
+    background: #F7F8FB;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: transform .2s ease;
+    will-change: transform;
+    touch-action: pan-y;
+}
+@media (hover: hover) {
+    .schedule-manage-card:hover {
+        background: #e9ecf1;
+    }
+}
+.schedule-manage-card:active {
+    background: #F7F8FB;
+}
+@media (hover: hover) {
+    .schedule-manage-card:hover:active {
+        background: #e9ecf1;
+    }
+}
+.schedule-manage-card-wrap.is-delete-open .schedule-manage-card {
+    transform: translateX(calc(-1 * var(--delete-reveal)));
+}
+
+/* 深色模式卡片 */
+[data-weui-theme="dark"] .schedule-manage-card {
+    background: #1F2023;
+    border-color: rgba(255,255,255,0.06);
+}
+@media (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .schedule-manage-card {
+        background: #1F2023;
+        border-color: rgba(255,255,255,0.06);
+    }
+}
+[data-weui-theme="dark"] .schedule-manage-card:active {
+    background: #1F2023;
+}
+@media (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .schedule-manage-card:active {
+        background: #1F2023;
+    }
+}
+@media (hover: hover) {
+    [data-weui-theme="dark"] .schedule-manage-card:hover,
+    [data-weui-theme="dark"] .schedule-manage-card:hover:active {
+        background: #2A2C31;
+    }
+}
+@media (hover: hover) and (prefers-color-scheme: dark) {
+    body:not([data-weui-theme="light"]) .schedule-manage-card:hover,
+    body:not([data-weui-theme="light"]) .schedule-manage-card:hover:active {
+        background: #2A2C31;
+    }
+}
+
+/* 卡片左侧信息：固定三行 */
+.schedule-manage-card-main {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.schedule-manage-card-row {
+    font-size: 14px; color: var(--weui-FG-0);
+    line-height: 1.4;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-height: 1.4em;
+}
+.schedule-manage-card-row--meta {
+    font-size: 12px; color: var(--weui-FG-1);
+}
+.schedule-manage-card-row--empty {
+    color: transparent;
+    user-select: none;
+}
+
+/* 卡片右侧操作按钮 */
+.schedule-manage-card-actions {
+    display: flex; flex-direction: column; gap: 4px;
+    flex-shrink: 0; align-items: center; justify-content: center;
+    padding-top: 2px;
+}
+.schedule-manage-card-action {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer;
+    background: transparent;
+}
+.schedule-manage-card-action:hover,
+.schedule-manage-card-action:active,
+.schedule-manage-card-action:focus {
+    background: transparent;
+    outline: none;
+}
+.schedule-manage-card-action--edit {
+    color: var(--weui-BRAND);
+}
+.schedule-manage-card-action--delete {
+    color: #fa5151;
+}
+
+/* 无效卡片：仅红色划线，仍可操作 */
+.schedule-manage-card--invalid .schedule-manage-card-row,
+.schedule-manage-card--invalid .schedule-manage-card-row--meta {
+    color: #fa5151; text-decoration: line-through;
+}
+.schedule-manage-card--invalid .schedule-manage-card-row--empty {
+    color: transparent;
+    text-decoration: none;
+}
 </style>
 
 <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
