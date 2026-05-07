@@ -67,7 +67,7 @@
 
 /* 弹窗 wrap：固定全屏，flex 居中 */
 .schedule-dialog-wrap {
-    position: fixed; inset: 0; z-index: 5000;
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 5000;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -78,7 +78,7 @@
 
 /* 遮罩：weui-mask，z-index 低于 panel */
 .schedule-dialog-wrap .weui-mask {
-    position: absolute; inset: 0;
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
     opacity: 0; transition: opacity 0.2s ease;
     pointer-events: auto;
 }
@@ -196,7 +196,7 @@
 
 /* 管理容器：覆盖在同一区域，不改变弹窗高度 */
 .schedule-dialog-tab-manage {
-    position: absolute; inset: 0;
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
     display: none; overflow-y: auto;
     padding: 10px 16px; box-sizing: border-box;
 }

@@ -3,8 +3,8 @@ import { API_CONFIG } from '/assets/common/api.js';
 const NOTICE_API_URL = API_CONFIG.NOTICE_API_URL;
 
 const STYLES = `
-.dialog-wrap { position: fixed; inset: 0; z-index: 11111; pointer-events: none; }
-.dialog-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.24s; pointer-events: auto; }
+.dialog-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 11111; pointer-events: none; }
+.dialog-mask { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.24s; pointer-events: auto; }
 .dialog-mask.active { opacity: 1; }
 .dialog-actions { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: var(--weui-BG-1); border-radius: 12px; padding: 20px; min-width: 240px; max-width: 90vw; max-height: 80vh; box-sizing: border-box; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.24s, transform 0.24s; pointer-events: auto; }
 .dialog-actions.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }

@@ -19,7 +19,7 @@ const HalfRadioDialog = {
     // 创建弹窗容器
     const wrap = document.createElement('div');
     wrap.id = DIALOG_ID;
-    wrap.style.cssText = 'position: absolute; inset: 0; z-index: 10000;';
+    wrap.style.cssText = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 10000;';
     wrap.innerHTML = `
       <div class="weui-mask"></div>
       <div class="weui-half-screen-dialog${scrollbarClass}" style="background-color: var(--weui-BG-1)">
