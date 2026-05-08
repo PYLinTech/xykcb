@@ -83,7 +83,6 @@
     "saveCourse": "Save",
     "add": "Add",
     "noCustomCourse": "No custom courses",
-    "confirmDelete": "Continue",
     "errorCourseNameRequired": "Please enter a course name"
   },
   "login": {

@@ -83,7 +83,6 @@
     "saveCourse": "保存",
     "add": "添加",
     "noCustomCourse": "暂无自定义课程",
-    "confirmDelete": "确认删除",
     "errorCourseNameRequired": "请输入课程名称"
   },
   "login": {

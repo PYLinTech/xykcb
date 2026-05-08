@@ -1249,7 +1249,6 @@ function renderScheduleManageList() {
         return;
     }
 
-    const confirmDeleteText = getI18n('schedule', 'confirmDelete') || 'Continue';
     const sectionSuffix = getI18n('schedule', 'sectionSuffix');
     const isChinese = isChineseScheduleLocale();
     const rowHtml = (text, extraClass = '') => `<div class="schedule-manage-card-row${extraClass}${!text ? ' schedule-manage-card-row--empty' : ''}">${text || '\u00A0'}</div>`;
@@ -1267,7 +1266,7 @@ function renderScheduleManageList() {
         const locRow = [item.location ? escapeHtml(item.location) : '', item.teacher ? escapeHtml(item.teacher) : ''].filter(Boolean).join(' / ');
 
         html += `<div class="schedule-manage-card-wrap" data-id="${escapeHtml(item.id)}">
-            <button type="button" class="schedule-manage-card-delete-bg js_custom_confirm_delete">${confirmDeleteText}</button>
+            <button type="button" class="schedule-manage-card-delete-bg js_custom_confirm_delete"><span class="schedule-manage-card-delete-icon"><i class="ri-delete-bin-fill"></i></span></button>
             <div class="schedule-manage-card${isInvalid ? ' schedule-manage-card--invalid' : ''}">
                 <div class="schedule-manage-card-main">
                     ${rowHtml(nameRow)}
