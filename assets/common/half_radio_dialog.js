@@ -1,4 +1,20 @@
 // 半屏单选弹窗
+
+import { mask } from '/assets/common/mask.js';
+
+const POPUP_LAYER_ID = 'xykcb-popup-layer';
+
+function ensurePopupLayer() {
+  let layer = document.getElementById(POPUP_LAYER_ID);
+  if (layer) return layer;
+  layer = document.createElement('div');
+  layer.id = POPUP_LAYER_ID;
+  layer.className = 'xykcb-layer xykcb-popup-layer';
+  layer.style.cssText = 'position:fixed;inset:0;z-index:7000;overflow:visible;background:transparent;pointer-events:none;';
+  document.body.appendChild(layer);
+  return layer;
+}
+
 const HalfRadioDialog = {
   show: function ({ title, options, selected, onChange }) {
     const DIALOG_ID = 'halfRadioDialogWrap';
@@ -19,9 +35,8 @@ const HalfRadioDialog = {
     // 创建弹窗容器
     const wrap = document.createElement('div');
     wrap.id = DIALOG_ID;
-    wrap.style.cssText = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 10000;';
+    wrap.style.cssText = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none;';
     wrap.innerHTML = `
-      <div class="weui-mask"></div>
       <div class="weui-half-screen-dialog${scrollbarClass}" style="background-color: var(--weui-BG-1)">
         <div class="weui-half-screen-dialog__hd">
           <div class="weui-half-screen-dialog__hd__main">
@@ -34,24 +49,21 @@ const HalfRadioDialog = {
         </div>
       </div>
     `;
-    document.body.appendChild(wrap);
+    ensurePopupLayer().appendChild(wrap);
 
     // 缓存 DOM 引用
     const dialog = wrap.querySelector('.weui-half-screen-dialog');
-    const mask = wrap.querySelector('.weui-mask');
     const bd = wrap.querySelector('.weui-half-screen-dialog__bd');
     const closeBtn = wrap.querySelector('#js_half_dialog_close');
+    dialog.style.pointerEvents = 'auto';
 
     // 滑入动画
     dialog.style.transform = 'translateY(100%)';
     dialog.style.transition = 'transform 0.24s';
-    mask.style.opacity = '0';
-    mask.style.transition = 'opacity 0.24s';
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         dialog.style.transform = 'translateY(0)';
-        mask.style.opacity = '1';
       });
     });
 
@@ -72,14 +84,15 @@ const HalfRadioDialog = {
     }
 
     // 关闭弹窗
+    const maskHandle = mask.show({ onClick: () => close() });
+
     const close = () => {
+      maskHandle.close();
       dialog.style.transform = 'translateY(100%)';
-      mask.style.opacity = '0';
       setTimeout(() => wrap.remove(), 240);
     };
 
     // 绑定事件
-    mask.addEventListener('click', close);
     closeBtn.addEventListener('click', close);
 
     wrap.addEventListener('click', e => {

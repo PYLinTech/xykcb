@@ -1,5 +1,20 @@
 // WeUI Dialog 弹窗组件
 
+import { mask } from '/assets/common/mask.js';
+
+const POPUP_LAYER_ID = 'xykcb-popup-layer';
+
+function ensurePopupLayer() {
+  let layer = document.getElementById(POPUP_LAYER_ID);
+  if (layer) return layer;
+  layer = document.createElement('div');
+  layer.id = POPUP_LAYER_ID;
+  layer.className = 'xykcb-layer xykcb-popup-layer';
+  layer.style.cssText = 'position:fixed;inset:0;z-index:7000;overflow:visible;background:transparent;pointer-events:none;';
+  document.body.appendChild(layer);
+  return layer;
+}
+
 const Dialog = {
   /**
    * 显示 Dialog 弹窗
@@ -28,7 +43,6 @@ const Dialog = {
     wrap.id = 'weuiDialogWrap';
     wrap.innerHTML = `
       <style>.weui-dialog_scrollable{display:flex;flex-direction:column;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px)}.weui-dialog_scrollable .weui-dialog__bd{min-height:0;overflow-y:auto;margin-bottom:0}.weui-dialog_scrollable .weui-dialog__bd>:last-child{margin-bottom:16px}</style>
-      <div class="weui-mask"></div>
       <div class="weui-dialog weui-dialog_scrollable${config.horizontalBtns ? ' weui-dialog_btn-wrap' : ''}">
         ${config.hasTitle ? `<div class="weui-dialog__hd"><strong class="weui-dialog__title">${title}</strong></div>` : ''}
         <div class="weui-dialog__bd" style="display: block; justify-content: unset; align-items: unset; -webkit-box-pack: unset; -webkit-box-align: unset; flex-direction: unset; -webkit-flex-direction: unset;">${content}</div>
@@ -36,15 +50,20 @@ const Dialog = {
       </div>
     `;
     // 初始状态：透明、过渡、层级
-    wrap.style.cssText = 'position: fixed; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; transition: opacity 0.12s; z-index: 5000;';
-    document.body.appendChild(wrap);
+    wrap.style.cssText = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; transition: opacity 0.12s; pointer-events: none; display: flex; align-items: center; justify-content: center;';
+    ensurePopupLayer().appendChild(wrap);
+    const maskHandle = mask.show({
+      onClick: () => { if (allowMaskClose) hide(-1); }
+    });
+    wrap.querySelector('.weui-dialog').style.pointerEvents = 'auto';
 
     const hide = (index = -1) => {
+      maskHandle.close();
       wrap.style.opacity = '0';
       setTimeout(() => {
         wrap.remove();
         onClose?.(index);
-      }, 120);
+      }, mask.duration);
     };
 
     // 淡入显示
@@ -56,7 +75,6 @@ const Dialog = {
     wrap.addEventListener('click', e => {
       const btn = e.target.closest('.weui-dialog__btn');
       if (btn) hide(parseInt(btn.dataset.index));
-      else if (allowMaskClose && e.target.classList.contains('weui-mask')) hide();
     });
   }
 };

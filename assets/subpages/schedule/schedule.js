@@ -5,6 +5,20 @@ import { CalendarPicker } from '/assets/common/calendar_picker.js';
 import { loadCourse, getCurrentSemesterAndWeek, getAvailableSemesters, getSemesterConfig, getWeekDates, getCourses, getCoursesByWeek, getCoursesByDate, formatWeeks, getBaseCourseByHash } from '/assets/common/course_parser.js';
 import { refreshCourseData, getSavedUser, loadLogin } from '/assets/subpages/login/login.js';
 import { toast } from '/assets/common/toast.js';
+import { mask } from '/assets/common/mask.js';
+
+const POPUP_LAYER_ID = 'xykcb-popup-layer';
+
+function ensurePopupLayer() {
+    let layer = document.getElementById(POPUP_LAYER_ID);
+    if (layer) return layer;
+    layer = document.createElement('div');
+    layer.id = POPUP_LAYER_ID;
+    layer.className = 'xykcb-layer xykcb-popup-layer';
+    layer.style.cssText = 'position:fixed;inset:0;z-index:7000;overflow:visible;background:transparent;pointer-events:none;';
+    document.body.appendChild(layer);
+    return layer;
+}
 import { getCustomCourseItems, getCustomCourseItem, upsertCustomCourseItem, deleteCustomCourseItem, createCustomCourseId } from '/assets/common/custom_course_store.js';
 
 const DEFAULT_TOTAL_WEEKS = 20;
@@ -888,7 +902,6 @@ function openScheduleActionPanel(options = {}) {
     wrap.id = 'js_schedule_dialog_wrap';
     wrap.className = 'schedule-dialog-wrap';
     wrap.innerHTML = `
-    <div class="weui-mask"></div>
     <div class="schedule-dialog-panel">
       <div class="schedule-dialog-hd">
         <span class="schedule-dialog-tab" data-tab="add" data-active="true">
@@ -952,7 +965,10 @@ function openScheduleActionPanel(options = {}) {
       </div>
     </div>`;
 
-    document.body.appendChild(wrap);
+    ensurePopupLayer().appendChild(wrap);
+    scheduleActionState.maskHandle = mask.show({
+        onClick: () => { resetSwipedCard(); closeScheduleActionPanel(); }
+    });
 
     requestAnimationFrame(() => {
         wrap.classList.add('schedule-dialog-wrap--visible');
@@ -970,6 +986,7 @@ function closeScheduleActionPanel() {
     const wrap = document.getElementById('js_schedule_dialog_wrap');
     if (!wrap) return;
     resetSwipedCard();
+    scheduleActionState?.maskHandle?.close();
     wrap.classList.remove('schedule-dialog-wrap--visible');
     setTimeout(() => wrap.remove(), DIALOG_CLOSE_DELAY);
     scheduleActionState = null;
@@ -1338,8 +1355,6 @@ function bindScheduleActionEvents() {
         const closeBtn = e.target.closest('.schedule-dialog-close');
         if (closeBtn) { resetSwipedCard(); closeScheduleActionPanel(); return; }
 
-        const mask = e.target.closest('.weui-mask');
-        if (mask) { resetSwipedCard(); closeScheduleActionPanel(); return; }
 
         const confirmDeleteBtn = e.target.closest('.js_custom_confirm_delete');
         if (confirmDeleteBtn) {

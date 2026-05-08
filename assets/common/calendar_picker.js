@@ -1,23 +1,40 @@
 // 日期选择器弹窗组件
 
 import { getI18n } from '/assets/init/languages.js';
+import { mask } from '/assets/common/mask.js';
+
+const POPUP_LAYER_ID = 'xykcb-popup-layer';
+
+function ensurePopupLayer() {
+  let layer = document.getElementById(POPUP_LAYER_ID);
+  if (layer) return layer;
+  layer = document.createElement('div');
+  layer.id = POPUP_LAYER_ID;
+  layer.className = 'xykcb-layer xykcb-popup-layer';
+  layer.style.cssText = 'position:fixed;inset:0;z-index:7000;overflow:visible;background:transparent;pointer-events:none;';
+  document.body.appendChild(layer);
+  return layer;
+}
 
 const CSS = `
 .calendar-picker-wrap .weui-half-screen-dialog {
   background-color: var(--weui-BG-1);
 }
 .calendar-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: 34px 136px 34px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  column-gap: 14px;
   padding: 12px 16px 0;
 }
 .calendar-nav-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 34px;
   cursor: pointer;
   border-radius: 50%;
 }
@@ -25,7 +42,16 @@ const CSS = `
   font-size: 20px;
 }
 .calendar-year-month {
+  width: 136px;
   font-size: 17px;
+  text-align: center;
+  white-space: nowrap;
+}
+.calendar-nav-btn--prev {
+  justify-self: end;
+}
+.calendar-nav-btn--next {
+  justify-self: start;
 }
 .calendar-weekdays {
   display: grid;
@@ -139,12 +165,12 @@ const CalendarPicker = {
       getI18n('common', 'yearMonth').replace('{year}', y).replace('{month}', m);
 
     wrap.innerHTML = `
-      <div class="weui-mask"></div>
       <div class="weui-half-screen-dialog calendar-picker-dialog">
         <div class="weui-half-screen-dialog__hd">
           <div class="weui-half-screen-dialog__hd__main">
             <strong class="weui-half-screen-dialog__title">${getI18n('common', 'selectDate')}</strong>
           </div>
+          <i class="weui-half-screen-dialog__close ri-close-line calendar-close-btn" style="font-size: 20px; cursor: pointer;"></i>
         </div>
         <div class="weui-half-screen-dialog__bd">
           <div class="calendar-nav">
@@ -162,16 +188,16 @@ const CalendarPicker = {
           <div class="calendar-grid">${renderCalendar(currentYear, currentMonth, initialDate)}</div>
           <div class="calendar-actions">
             <a role="button" href="javascript:" class="weui-btn weui-btn_primary" data-action="today">${getI18n('common', 'today')}</a>
-            <a role="button" href="javascript:" class="weui-btn weui-btn_default" data-action="cancel">${getI18n('common', 'cancel')}</a>
           </div>
         </div>
       </div>
     `;
 
-    document.body.appendChild(wrap);
+    wrap.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+    ensurePopupLayer().appendChild(wrap);
 
     const dialog = wrap.querySelector('.weui-half-screen-dialog');
-    const mask = wrap.querySelector('.weui-mask');
+    dialog.style.pointerEvents = 'auto';
     const yearMonthEl = wrap.querySelector('.calendar-year-month');
     const gridEl = wrap.querySelector('.calendar-grid');
 
@@ -180,20 +206,29 @@ const CalendarPicker = {
       gridEl.innerHTML = renderCalendar(currentYear, currentMonth, initialDate);
     };
 
-    const animate = (el, prop, start, end) => {
-      el.style.transition = `${prop} ${CONFIG.animDuration}ms`;
-      el.style[prop] = start;
-      requestAnimationFrame(() => el.style[prop] = end);
-    };
+    let closed = false;
 
-    animate(dialog, 'transform', 'translateY(100%)', 'translateY(0)');
-    animate(mask, 'opacity', '0', '1');
+    // 与 HalfRadioDialog 保持一致：半屏弹窗从底部滑入/滑出，仅使用 transform。
+    dialog.style.transform = 'translateY(100%)';
+    dialog.style.transition = `transform ${CONFIG.animDuration / 1000}s`;
+
+    const maskHandle = mask.show({
+      onClick: () => { if (allowMaskClose) close('cancel'); }
+    });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!closed) dialog.style.transform = 'translateY(0)';
+      });
+    });
 
     const close = (action, date) => {
+      if (closed) return;
+      closed = true;
       if (action === 'confirm' && date) onChange?.(date);
       onClose?.();
-      animate(dialog, 'transform', 'translateY(0)', 'translateY(100%)');
-      animate(mask, 'opacity', '1', '0');
+      maskHandle.close();
+      dialog.style.transform = 'translateY(100%)';
       setTimeout(() => {
         wrap.remove();
       }, CONFIG.animDuration);
@@ -217,7 +252,7 @@ const CalendarPicker = {
         close('confirm', todayStr);
         return;
       }
-      if (action === 'cancel') {
+      if (e.target.closest('.calendar-close-btn')) {
         close('cancel');
         return;
       }
@@ -235,9 +270,6 @@ const CalendarPicker = {
       }
     });
 
-    if (allowMaskClose) {
-      mask.addEventListener('click', () => close('cancel'));
-    }
   }
 };
 

@@ -1,131 +1,291 @@
-// Toast 提示组件
+// Toast 提示组件（完全自定义，不依赖 WeUI）
 
-let toastContainer = null;
+const TOAST_LAYER_ID = 'xykcb-toast-layer';
+const STYLE_ID = 'xykcb-toast-style';
+
+let toastHost = null;
 let toastElement = null;
+let leavingToastElement = null;
 let hideTimer = null;
+let removeTimer = null;
+let styleInjected = false;
+let toastVersion = 0;
+let currentType = null;
 
-// Toast 配置
 const TOAST_CONFIG = {
-    zIndex: 10000,
     defaultDuration: 1200,
-    fadeDuration: 120
+    animDuration: 200
 };
 
-// Toast 图标配置
 const TOAST_ICONS = {
-    success: 'weui-icon-success-no-circle weui-icon_toast',
-    warn: 'weui-icon-warn weui-icon_toast',
-    loading: 'weui-primary-loading weui-icon_toast',
+    success: 'ri-check-line',
+    warn: 'ri-error-warning-fill',
+    loading: 'ri-loader-4-line',
     text: ''
 };
 
-// 初始化容器
-function initContainer() {
-    if (toastContainer) return;
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'js_toast_container';
-    Object.assign(toastContainer.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        zIndex: String(TOAST_CONFIG.zIndex),
-        pointerEvents: 'none'
-    });
-    document.body.appendChild(toastContainer);
+function injectStyle() {
+    if (styleInjected || document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+        @keyframes xykcb-toast-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .xykcb-toast-host {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: visible;
+            isolation: isolate;
+        }
+        .xykcb-toast {
+            position: fixed;
+            left: 50%;
+            top: 46%;
+            box-sizing: border-box;
+            width: 144px;
+            height: 144px;
+            max-width: calc(100vw - 48px);
+            padding: 22px 18px 20px;
+            border-radius: 16px;
+            border: 0;
+            background: var(--weui-BG-4);
+            color: var(--weui-WHITE);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.92);
+            transition: transform ${TOAST_CONFIG.animDuration}ms ease, opacity ${TOAST_CONFIG.animDuration}ms ease;
+            will-change: transform, opacity;
+        }
+        .xykcb-toast.is-visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .xykcb-toast__icon-box {
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            background: transparent;
+        }
+        .xykcb-toast__icon {
+            display: block;
+            width: 46px;
+            height: 46px;
+            line-height: 46px;
+            font-size: 46px;
+            font-weight: 400;
+            color: currentColor;
+        }
+        .xykcb-toast__icon--loading {
+            animation: xykcb-toast-spin .82s linear infinite;
+        }
+        .xykcb-toast__content {
+            margin: 0;
+            max-width: 100%;
+            color: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.42;
+            letter-spacing: .01em;
+            word-break: break-word;
+        }
+        .xykcb-toast--text {
+            width: auto;
+            min-width: 112px;
+            max-width: min(340px, calc(100vw - 48px));
+            height: auto;
+            min-height: 112px;
+            padding: 18px 20px;
+            flex-direction: row;
+            gap: 0;
+        }
+        .xykcb-toast--text .xykcb-toast__content {
+            width: 100%;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 500;
+            line-height: 1.42;
+            text-align: center;
+        }
+    `;
+    document.head.appendChild(style);
+    styleInjected = true;
 }
 
-// 创建 Toast 元素
+function normalizeType(type) {
+    return TOAST_ICONS[type] !== undefined ? type : 'text';
+}
+
+function ensureToastLayer() {
+    let layer = document.getElementById(TOAST_LAYER_ID);
+    if (layer) return layer;
+
+    layer = document.createElement('div');
+    layer.id = TOAST_LAYER_ID;
+    layer.className = 'xykcb-layer xykcb-toast-layer';
+    layer.style.cssText = 'position:fixed;inset:0;z-index:9000;overflow:visible;background:transparent;pointer-events:none;';
+    document.body.appendChild(layer);
+    return layer;
+}
+
+function ensureToastHost() {
+    if (toastHost && toastHost.isConnected) return toastHost;
+
+    toastHost = document.createElement('div');
+    toastHost.className = 'xykcb-toast-host';
+    ensureToastLayer().appendChild(toastHost);
+    return toastHost;
+}
+
+function fillToastElement(element, type, message) {
+    element.className = `xykcb-toast xykcb-toast--${type}`;
+    element.setAttribute('role', 'alert');
+    element.setAttribute('aria-live', type === 'loading' ? 'polite' : 'assertive');
+    element.textContent = '';
+
+    const iconClass = TOAST_ICONS[type];
+    if (iconClass) {
+        const iconBox = document.createElement('span');
+        iconBox.className = 'xykcb-toast__icon-box';
+
+        const icon = document.createElement('i');
+        icon.className = `xykcb-toast__icon ${iconClass}${type === 'loading' ? ' xykcb-toast__icon--loading' : ''}`;
+        icon.setAttribute('aria-hidden', 'true');
+
+        iconBox.appendChild(icon);
+        element.appendChild(iconBox);
+    }
+
+    const content = document.createElement('p');
+    content.className = 'xykcb-toast__content';
+    content.textContent = message == null ? '' : String(message);
+    element.appendChild(content);
+}
+
 function createToastElement(type, message) {
     const element = document.createElement('div');
-    element.setAttribute('role', 'alert');
-    Object.assign(element.style, {
-        opacity: '0',
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: String(TOAST_CONFIG.zIndex),
-        transition: `opacity ${TOAST_CONFIG.fadeDuration}ms`
-    });
-
-    // 遮罩层
-    const mask = document.createElement('div');
-    mask.className = 'weui-mask_transparent';
-    element.appendChild(mask);
-
-    // 包装器
-    const wrp = document.createElement('div');
-    wrp.className = 'weui-toast__wrp';
-    element.appendChild(wrp);
-
-    // 内容
-    const content = document.createElement('div');
-    content.className = 'weui-toast';
-    content.innerHTML = `
-        <i class="${TOAST_ICONS[type]}"></i>
-        <p class="weui-toast__content">${message}</p>
-    `;
-    wrp.appendChild(content);
-
+    fillToastElement(element, type, message);
     return element;
 }
 
-// 显示 Toast
-export function showToast(type, message, duration = TOAST_CONFIG.defaultDuration) {
-    initContainer();
-    clearHideTimer();
-
-    // 移除已存在的 toast
-    if (toastElement) {
-        toastElement.remove();
-        toastElement = null;
-    }
-
-    toastElement = createToastElement(type, message);
-    toastContainer.appendChild(toastElement);
-
-    // 淡入
-    requestAnimationFrame(() => {
-        toastElement.style.opacity = '1';
-    });
-
-    // 自动关闭（非 loading 类型）
-    if (type !== 'loading') {
-        hideTimer = setTimeout(hideToast, duration);
-    }
-}
-
-// 隐藏 Toast
-export function hideToast() {
-    if (!toastElement) return;
-
-    const oldElement = toastElement;
-    toastElement = null;
-
-    oldElement.style.opacity = '0';
-    setTimeout(() => {
-        if (oldElement && oldElement.parentNode) {
-            oldElement.remove();
-        }
-    }, TOAST_CONFIG.fadeDuration);
-
-    clearHideTimer();
-}
-
-// 清除隐藏定时器
-function clearHideTimer() {
+function clearTimers() {
     if (hideTimer) {
         clearTimeout(hideTimer);
         hideTimer = null;
     }
+    if (removeTimer) {
+        clearTimeout(removeTimer);
+        removeTimer = null;
+    }
 }
 
-// 便捷调用
+function clearLeavingToast() {
+    if (leavingToastElement) {
+        leavingToastElement.remove();
+        leavingToastElement = null;
+    }
+}
+
+function scheduleHide(type, duration) {
+    if (type === 'loading') return;
+    hideTimer = setTimeout(hideToast, duration);
+}
+
+function removeHostIfEmpty() {
+    if (toastHost && toastHost.isConnected && !toastHost.childElementCount) {
+        toastHost.remove();
+    }
+}
+
+function showNewToast(type, message, version) {
+    clearLeavingToast();
+    toastElement = createToastElement(type, message);
+    currentType = type;
+    ensureToastHost().appendChild(toastElement);
+
+    requestAnimationFrame(() => {
+        if (version === toastVersion && toastElement) {
+            toastElement.classList.add('is-visible');
+        }
+    });
+}
+
+function switchCurrentToast(type, message) {
+    if (!toastElement) return;
+    fillToastElement(toastElement, type, message);
+    toastElement.classList.add('is-visible');
+    currentType = type;
+}
+
+function reuseLeavingToast(type, message) {
+    toastElement = leavingToastElement;
+    leavingToastElement = null;
+    fillToastElement(toastElement, type, message);
+    toastElement.classList.add('is-visible');
+    currentType = type;
+}
+
+export function showToast(type, message, duration = TOAST_CONFIG.defaultDuration) {
+    injectStyle();
+    clearTimers();
+
+    const version = ++toastVersion;
+    const normalizedType = normalizeType(type);
+
+    if (toastElement && toastElement.isConnected) {
+        switchCurrentToast(normalizedType, message);
+    } else if (leavingToastElement && leavingToastElement.isConnected) {
+        reuseLeavingToast(normalizedType, message);
+    } else {
+        showNewToast(normalizedType, message, version);
+    }
+
+    scheduleHide(normalizedType, duration);
+}
+
+export function hideToast() {
+    if (!toastElement) return;
+
+    clearTimers();
+    const version = ++toastVersion;
+    clearLeavingToast();
+
+    const oldToast = toastElement;
+    toastElement = null;
+    leavingToastElement = oldToast;
+    currentType = null;
+
+    oldToast.classList.remove('is-visible');
+    removeTimer = setTimeout(() => {
+        if (version === toastVersion && leavingToastElement === oldToast) {
+            oldToast.remove();
+            leavingToastElement = null;
+            removeHostIfEmpty();
+            removeTimer = null;
+        }
+    }, TOAST_CONFIG.animDuration);
+}
+
 export const toast = {
     success: (message, duration) => showToast('success', message, duration),
     warn: (message, duration) => showToast('warn', message, duration),
     loading: (message) => showToast('loading', message),
     text: (message, duration) => showToast('text', message, duration)
 };
+
+window.toast = toast;

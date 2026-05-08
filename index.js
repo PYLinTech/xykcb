@@ -90,11 +90,13 @@ export async function showOverlay(pageName, html) {
     await translatePage(pageName, overlay);
   }
   overlay.classList.add('show');
+  document.body.classList.add('xykcb-overlay-open');
 }
 
 export function hideOverlay() {
   const overlay = document.getElementById('overlay');
   overlay.classList.remove('show');
+  document.body.classList.remove('xykcb-overlay-open');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,11 +1,22 @@
 // 远程公告配置地址
 import { API_CONFIG } from '/assets/common/api.js';
+import { mask } from '/assets/common/mask.js';
 const NOTICE_API_URL = API_CONFIG.NOTICE_API_URL;
+const POPUP_LAYER_ID = 'xykcb-popup-layer';
+
+function ensurePopupLayer() {
+    let layer = document.getElementById(POPUP_LAYER_ID);
+    if (layer) return layer;
+    layer = document.createElement('div');
+    layer.id = POPUP_LAYER_ID;
+    layer.className = 'xykcb-layer xykcb-popup-layer';
+    layer.style.cssText = 'position:fixed;inset:0;z-index:7000;overflow:visible;background:transparent;pointer-events:none;';
+    document.body.appendChild(layer);
+    return layer;
+}
 
 const STYLES = `
-.dialog-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 11111; pointer-events: none; }
-.dialog-mask { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.24s; pointer-events: auto; }
-.dialog-mask.active { opacity: 1; }
+.dialog-wrap { position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }
 .dialog-actions { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: var(--weui-BG-1); border-radius: 12px; padding: 20px; min-width: 240px; max-width: 90vw; max-height: 80vh; box-sizing: border-box; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.24s, transform 0.24s; pointer-events: auto; }
 .dialog-actions.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .dialog-header { position: relative; font-size: 16px; color: var(--weui-FG-0); margin-bottom: 16px; font-weight: 500; flex-shrink: 0; }
@@ -30,31 +41,30 @@ function createDialog({ id, title, content, maskClosable = false, bodyClass = ''
     wrap.id = id;
     wrap.className = 'dialog-wrap';
     wrap.innerHTML = `
-        <div class="dialog-mask"></div>
         <div class="dialog-actions">
             <div class="dialog-header">${title}<i class="dialog-close ri-close-line"></i></div>
             <div class="dialog-body scrollbar-enabled${bodyClass ? ' ' + bodyClass : ''}">${content}</div>
         </div>
     `;
-    document.body.appendChild(wrap);
+    ensurePopupLayer().appendChild(wrap);
 
-    const [mask, actions, closeBtn] = wrap.querySelectorAll('.dialog-mask, .dialog-actions, .dialog-close');
+    const actions = wrap.querySelector('.dialog-actions');
+    const closeBtn = wrap.querySelector('.dialog-close');
+    const maskHandle = mask.show({ onClick: () => { if (maskClosable) close(); } });
 
     // 强制重绘确保样式应用后再触发动画
     wrap.offsetHeight;
     requestAnimationFrame(() => {
-        mask.classList.add('active');
         actions.classList.add('active');
     });
 
     const close = () => {
-        mask.classList.remove('active');
+        maskHandle.close();
         actions.classList.remove('active');
         setTimeout(() => wrap.remove() || onClose(), 240);
     };
 
     closeBtn.onclick = close;
-    if (maskClosable) mask.onclick = close;
     if (onClick) wrap.onclick = e => { if (onClick(e, close) === false) e.stopPropagation(); };
 
     return { wrap, close };

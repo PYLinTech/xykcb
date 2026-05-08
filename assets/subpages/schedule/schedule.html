@@ -63,30 +63,21 @@
     opacity: 0.9;
 }
 
-/* 弹窗 wrap：固定全屏，flex 居中 */
+/* 弹窗 wrap：挂载到 popup 预留层，flex 居中 */
 .schedule-dialog-wrap {
-    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 5000;
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
 }
 .schedule-dialog-wrap.schedule-dialog-wrap--visible {
     opacity: 1; visibility: visible;
 }
 
-/* 遮罩：weui-mask，z-index 低于 panel */
-.schedule-dialog-wrap .weui-mask {
-    position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-    opacity: 0; transition: opacity 0.2s ease;
-    pointer-events: auto;
-}
-.schedule-dialog-wrap.schedule-dialog-wrap--visible .weui-mask {
-    opacity: 1;
-}
-
-/* 面板：居中，z-index 高于 mask，pointer-events: auto */
+/* 面板：居中，pointer-events: auto */
 .schedule-dialog-panel {
-    position: relative; z-index: 5000;
+    position: relative;
     width: 90%; max-width: 460px;
     max-height: 90vh;
     background: var(--weui-BG-2);
