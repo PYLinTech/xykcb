@@ -1,11 +1,16 @@
+https://xykcb.pylin.cn/
 https://xykcb.pylin.cn/index.html
 https://xykcb.pylin.cn/index.js
 https://xykcb.pylin.cn/index.css
+https://xykcb.pylin.cn/favicon.ico
 https://xykcb.pylin.cn/assets/common/api.js
 https://xykcb.pylin.cn/assets/common/calendar_picker.js
+https://xykcb.pylin.cn/assets/common/course_data_adapter.js
 https://xykcb.pylin.cn/assets/common/course_parser.js
+https://xykcb.pylin.cn/assets/common/custom_course_store.js
 https://xykcb.pylin.cn/assets/common/dialog.js
 https://xykcb.pylin.cn/assets/common/half_radio_dialog.js
+https://xykcb.pylin.cn/assets/common/mask.js
 https://xykcb.pylin.cn/assets/common/notice_dialog.js
 https://xykcb.pylin.cn/assets/common/toast.js
 https://xykcb.pylin.cn/assets/init/fonts.js
@@ -32,10 +37,6 @@ https://xykcb.pylin.cn/assets/subpages/welcome/welcome.js
 https://xykcb.pylin.cn/functions/hnit_a/grades.html
 https://xykcb.pylin.cn/functions/hnit_a/major_plan.html
 https://xykcb.pylin.cn/libraries/remixicon/remixicon.css
-https://xykcb.pylin.cn/libraries/remixicon/remixicon.eot
-https://xykcb.pylin.cn/libraries/remixicon/remixicon.svg
-https://xykcb.pylin.cn/libraries/remixicon/remixicon.ttf
-https://xykcb.pylin.cn/libraries/remixicon/remixicon.woff
 https://xykcb.pylin.cn/libraries/remixicon/remixicon.woff2
 https://xykcb.pylin.cn/libraries/sheetjs/xlsx.mini.min.js
 https://xykcb.pylin.cn/libraries/weui/weui.min.css

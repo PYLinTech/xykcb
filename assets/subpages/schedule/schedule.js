@@ -1507,18 +1507,21 @@ export async function load(container) {
             const semesterConfig = getSemesterConfig(currentSemesterId);
             if (semesterConfig) {
                 const totalWeeks = semesterConfig.totalWeeks;
+                const allWeekLabel = getI18n('schedule', 'allWeek');
+                const weekLabelTemplate = getI18n('schedule', 'weekN');
+                const currentWeekSuffix = getI18n('schedule', 'currentWeekSuffix');
 
-                const cacheKey = `${currentSemesterId}-${totalWeeks}-${currentSemesterAndWeek?.semesterId}-${currentSemesterAndWeek?.week}`;
+                const cacheKey = `${currentSemesterId}-${totalWeeks}-${currentSemesterAndWeek?.semesterId}-${currentSemesterAndWeek?.week}-${allWeekLabel}-${weekLabelTemplate}-${currentWeekSuffix}`;
                 if (weekOptionsCacheKey !== cacheKey) {
                     weekOptionsCacheKey = cacheKey;
                     weekOptionsCache = [
-                        { value: '0', label: getI18n('schedule', 'allWeek') },
+                        { value: '0', label: allWeekLabel },
                         ...Array.from({ length: totalWeeks }, (_, i) => {
                             const weekNum = i + 1;
                             const isCurrentWeek = currentSemesterAndWeek?.semesterId === currentSemesterId && currentSemesterAndWeek?.week === weekNum;
                             return {
                                 value: String(weekNum),
-                                label: `${getI18n('schedule', 'weekN').replace('{n}', weekNum)}${isCurrentWeek ? getI18n('schedule', 'currentWeekSuffix') : ''}`
+                                label: `${weekLabelTemplate.replace('{n}', weekNum)}${isCurrentWeek ? currentWeekSuffix : ''}`
                             };
                         })
                     ];
