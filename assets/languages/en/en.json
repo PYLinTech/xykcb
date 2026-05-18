@@ -156,6 +156,8 @@
     "colorIceBlue": "Ice Blue",
     "colorSheerPink": "Sheer Pink",
     "colorDistantCyan": "Distant Cyan",
-    "colorFreedomOrange": "Freedom Orange"
+    "colorFreedomOrange": "Freedom Orange",
+    "courseWatermark": "Course Watermark",
+    "watermarkPlaceholder": "Enter watermark text"
   }
 }

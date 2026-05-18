@@ -156,6 +156,8 @@
     "colorIceBlue": "冰晶蓝",
     "colorSheerPink": "薄纱粉",
     "colorDistantCyan": "远山青",
-    "colorFreedomOrange": "自由橙"
+    "colorFreedomOrange": "自由橙",
+    "courseWatermark": "课程水印",
+    "watermarkPlaceholder": "请输入水印文本"
   }
 }

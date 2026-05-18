@@ -183,6 +183,8 @@ const showWeekend = () => getSetting('showWeekend') === 'true';
 const showTeacher = () => getSetting('showTeacher') === 'true';
 const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
+const watermarkEnabled = () => (localStorage.getItem('setting_watermarkEnabled') ?? 'true') === 'true';
+const watermarkText = () => localStorage.getItem('setting_watermark') ?? '';
 const startupUpdateEnabled = () => getSetting('autoUpdate') === 'true';
 
 const getCourseColorIndex = (course) => {
@@ -194,6 +196,29 @@ const getCourseColorIndex = (course) => {
     }
     return Math.abs(hash) % 10;
 };
+
+function renderWatermark(container) {
+    const wrapperEl = container.querySelector('#js_schedule_wrapper');
+    if (!wrapperEl) return;
+    wrapperEl.querySelector('.schedule-watermark')?.remove();
+    const text = watermarkText();
+    if (!text || !watermarkEnabled()) return;
+    const watermark = document.createElement('div');
+    watermark.className = 'schedule-watermark';
+    const inner = document.createElement('div');
+    inner.className = 'schedule-watermark-inner';
+    const cols = Math.ceil(wrapperEl.offsetWidth / 160) + 2;
+    const rows = Math.ceil(wrapperEl.offsetHeight / 100) + 2;
+    const count = cols * rows;
+    for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.className = 'schedule-watermark-text';
+        span.textContent = text;
+        inner.appendChild(span);
+    }
+    watermark.appendChild(inner);
+    wrapperEl.appendChild(watermark);
+}
 
 function updateContentView(container) {
     container.querySelector('#js_content_view_label').textContent = getI18n('schedule', viewConfig[scheduleView].labelKey);
@@ -498,6 +523,7 @@ function refreshScheduleView(container) {
     updateCurrentWeek(container);
     renderSchedule(container);
     renderScheduleActionFab(container);
+    renderWatermark(container);
 }
 
 function refreshPageSchedule(delay = CUSTOM_REFRESH_DELAY) {

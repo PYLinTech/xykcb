@@ -469,6 +469,43 @@
     color: transparent;
     text-decoration: none;
 }
+
+/* 水印层 */
+.schedule-watermark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 10;
+    user-select: none;
+}
+.schedule-watermark-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-25deg);
+    transform-origin: center center;
+}
+.schedule-watermark-text {
+    flex: 0 0 auto;
+    width: 160px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--weui-FG-2);
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.22;
+}
 </style>
 
 <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
@@ -488,5 +525,7 @@
             </span>
         </i>
     </div>
-    <div id="js_schedule_content" style="flex: 1; min-height: 0; overflow: hidden;"></div>
+    <div id="js_schedule_wrapper" style="flex: 1; min-height: 0; position: relative; overflow: hidden;">
+        <div id="js_schedule_content" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
+    </div>
 </div>

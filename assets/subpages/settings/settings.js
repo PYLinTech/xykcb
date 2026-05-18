@@ -125,6 +125,32 @@ export async function load(container) {
     }
   });
 
+  // 水印开关
+  const watermarkSwitch = container.querySelector('#js_switch_watermark');
+  if (watermarkSwitch) {
+    watermarkSwitch.checked = (localStorage.getItem('setting_watermarkEnabled') ?? 'true') === 'true';
+    watermarkSwitch.addEventListener('change', () => {
+      localStorage.setItem('setting_watermarkEnabled', watermarkSwitch.checked.toString());
+    });
+    const switchBox = watermarkSwitch.closest('.weui-switch-cp');
+    if (switchBox) {
+      switchBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        watermarkSwitch.checked = !watermarkSwitch.checked;
+        watermarkSwitch.dispatchEvent(new Event('change'));
+      });
+    }
+  }
+
+  // 水印输入框
+  const watermarkInput = container.querySelector('#js_input_watermark');
+  if (watermarkInput) {
+    watermarkInput.value = localStorage.getItem('setting_watermark') ?? '';
+    watermarkInput.addEventListener('blur', () => {
+      localStorage.setItem('setting_watermark', watermarkInput.value);
+    });
+  }
+
   // 渲染版本信息: v版本 · 渠道 · 平台
   const appVersion = localStorage.getItem('setting_app_version');
   const appPlatform = localStorage.getItem('setting_app_platform');
