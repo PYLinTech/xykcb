@@ -207,8 +207,10 @@ function renderWatermark(container) {
     watermark.className = 'schedule-watermark';
     const inner = document.createElement('div');
     inner.className = 'schedule-watermark-inner';
-    const cols = Math.ceil(wrapperEl.offsetWidth / 160) + 2;
-    const rows = Math.ceil(wrapperEl.offsetHeight / 100) + 2;
+    const innerW = wrapperEl.offsetWidth * 2;
+    const innerH = wrapperEl.offsetHeight * 2;
+    const cols = Math.ceil(innerW / 160) + 2;
+    const rows = Math.ceil(innerH / 100) + 2;
     const count = cols * rows;
     for (let i = 0; i < count; i++) {
         const span = document.createElement('span');
