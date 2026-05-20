@@ -177,6 +177,7 @@ let loginSuccessHandler = null;
 let scheduleActionState = null;
 let swipedCardWrapEl = null;
 let pageContainer = null;
+let watermarkResizeObserver = null;
 
 const getSetting = key => localStorage.getItem(`setting_${key}`) ?? 'true';
 const showWeekend = () => getSetting('showWeekend') === 'true';
@@ -209,8 +210,8 @@ function renderWatermark(container) {
     inner.className = 'schedule-watermark-inner';
     const innerW = wrapperEl.offsetWidth * 2;
     const innerH = wrapperEl.offsetHeight * 2;
-    const cols = Math.ceil(innerW / 160) + 2;
-    const rows = Math.ceil(innerH / 100) + 2;
+    const cols = Math.ceil(innerW / 240) + 2;
+    const rows = Math.ceil(innerH / 160) + 2;
     const count = cols * rows;
     for (let i = 0; i < count; i++) {
         const span = document.createElement('span');
@@ -1463,6 +1464,13 @@ export async function load(container) {
         courseDataLoaded = false;
     }
     refreshScheduleView(container);
+
+    if (watermarkResizeObserver) watermarkResizeObserver.disconnect();
+    const wrapperEl = container.querySelector('#js_schedule_wrapper');
+    if (wrapperEl) {
+        watermarkResizeObserver = new ResizeObserver(() => renderWatermark(container));
+        watermarkResizeObserver.observe(wrapperEl);
+    }
 
     if (loginSuccessHandler) {
         window.removeEventListener('login-success', loginSuccessHandler);
