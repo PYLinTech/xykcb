@@ -52,7 +52,7 @@ xykcb/
 │       ├── settings/                # 设置页面
 │       │   └── settings.html/js    # 语言/主题/字体设置
 │       └── welcome/                 # 欢迎页面
-├── functions/              # 远程功能模块
+├── plugin/                 # 远程功能模块
 │   └── hnit_a/           # 湖南工学院功能
 │       └── grades.html    # 成绩查询导出
 └── libraries/
@@ -337,7 +337,7 @@ xykcb/
   - 登录成功后自动获取课程数据
   - 账号密码本地保存
 
-#### 3.5 远程功能模块 (`/functions/`)
+#### 3.5 远程功能模块 (`/plugin/`)
 - **功能**：插件式功能扩展
 - **架构**：通过 API 获取学校支持的功能列表，动态加载 HTML 和脚本
 - **示例**：`hnit_a/grades.html` - 成绩查询与导出

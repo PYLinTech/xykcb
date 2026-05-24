@@ -34,8 +34,8 @@ https://xykcb.pylin.cn/assets/subpages/settings/settings.html
 https://xykcb.pylin.cn/assets/subpages/settings/settings.js
 https://xykcb.pylin.cn/assets/subpages/welcome/welcome.html
 https://xykcb.pylin.cn/assets/subpages/welcome/welcome.js
-https://xykcb.pylin.cn/functions/hnit_a/grades.html
-https://xykcb.pylin.cn/functions/hnit_a/major_plan.html
+https://xykcb.pylin.cn/plugin/hnit_a/grades.html
+https://xykcb.pylin.cn/plugin/hnit_a/major_plan.html
 https://xykcb.pylin.cn/libraries/remixicon/remixicon.css
 https://xykcb.pylin.cn/libraries/remixicon/remixicon.woff2
 https://xykcb.pylin.cn/libraries/sheetjs/xlsx.mini.min.js
