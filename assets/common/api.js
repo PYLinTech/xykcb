@@ -2,7 +2,7 @@
 
 const CONFIG = {
   // API 基础地址
-  BASE_URL: 'https://api.pylin.cn/xykcb',
+  BASE_URL: 'https://xykcb-server.pylin.cn',
   // CDN 地址
   CDN_URL: '/libraries',
   // Web/小程序版本号
@@ -19,9 +19,11 @@ const CONFIG = {
 const API = {
   getSupportSchool: `${CONFIG.BASE_URL}/get-support-school`,
   getCourseData: `${CONFIG.BASE_URL}/get-course-data`,
-  getSupportFunction: (school) => `${CONFIG.BASE_URL}/get-support-function?school=${school}`,
+  getSupportFunction: (school) => `${CONFIG.BASE_URL}/get-support-function?school=${encodeURIComponent(school)}`,
   fontUrl: (fileName) => `${CONFIG.CDN_URL}/fonts/${fileName}`
 };
+
+export const withQuery = (baseUrl, params) => `${baseUrl}?${new URLSearchParams(params).toString()}`;
 
 // 带超时的 fetch
 export const fetchWithTimeout = (url, options = {}) => {

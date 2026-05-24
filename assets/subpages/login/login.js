@@ -2,7 +2,7 @@ import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
 import { getI18n } from '/assets/init/languages.js';
-import { API, fetchWithTimeout } from '/assets/common/api.js';
+import { API, fetchWithTimeout, withQuery } from '/assets/common/api.js';
 import { parseCourseDataResponse } from '/assets/common/course_data_adapter.js';
 
 const LOGIN_USER_KEY = 'login_user';
@@ -156,7 +156,7 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
   if (showToast) toast.loading(getI18n('login', loadingKey));
 
   try {
-    const res = await fetchWithTimeout(`${API.getCourseData}?school=${school}&account=${encodeURIComponent(account)}&password=${encodeURIComponent(password)}`);
+    const res = await fetchWithTimeout(withQuery(API.getCourseData, { school, account, password }));
 
     const result = await res.json();
 

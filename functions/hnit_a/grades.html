@@ -4,7 +4,7 @@
 </div>
 
 <script type="module">
-    import { API_CONFIG, fetchWithTimeout } from '/assets/common/api.js';
+    import { API_CONFIG, fetchWithTimeout, withQuery } from '/assets/common/api.js';
     import { toast, hideToast } from '/assets/common/toast.js';
     import { getI18n, getCurrentLang } from '/assets/init/languages.js';
     import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
@@ -145,16 +145,18 @@
         setExportBtnEnabled(false);
         toast.loading(getI18n('common', 'toastLoading'));
         try {
-            let url = `${BASE_URL}/get-course-grades?school=${school}&account=${account}&password=${encodeURIComponent(password)}`;
-            if (currentSemester) url += `&semester=${currentSemester}`;
+            const url = withQuery(`${BASE_URL}/get-course-grades`, { school, account, password, semester: currentSemester });
             const result = await (await fetchWithTimeout(url)).json();
             hideToast();
             setExportBtnEnabled(true);
-            if (!result.success) { gradesList.innerHTML = `<div class="error">${t('fetchFailed')}</div>`; return; }
+            if (!result.success) {
+                gradesList.innerHTML = `<div class="error">${getI18n('desc_key', result.desc_key || '004')}</div>`;
+                return;
+            }
             currentGradesData = result.data['all-grades'][0];
             availableSemesters = result.data['all-semester'].map(s => s.semesterId).reverse();
             renderGrades(currentGradesData);
-        } catch (e) { hideToast(); setExportBtnEnabled(true); toast.warn(t('loadFailed') + e.message); }
+        } catch (e) { hideToast(); setExportBtnEnabled(true); toast.warn(getI18n('desc_key', '000')); }
     }
 
     const getBadgeHtml = (sfjg) => {
