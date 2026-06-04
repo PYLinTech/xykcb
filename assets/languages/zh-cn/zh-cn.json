@@ -157,6 +157,13 @@
     "colorDistantCyan": "远山青",
     "colorFreedomOrange": "自由橙",
     "courseWatermark": "课程水印",
-    "watermarkPlaceholder": "请输入水印文本"
+    "watermarkPlaceholder": "请输入水印文本",
+    "agreementPolicy": "用户协议与隐私政策",
+    "agreementAccepted": "已阅读并同意",
+    "continueConfirmTitle": "是否继续？",
+    "continueConfirmContent": "不同意协议与政策将会清除您的数据并退出",
+    "back": "返回",
+    "continue": "继续",
+    "clearingData": "正在清除..."
   }
 }

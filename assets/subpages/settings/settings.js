@@ -1,5 +1,7 @@
 import { translatePage, getI18n, onLanguageChange } from '/assets/init/languages.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
+import { Dialog } from '/assets/common/dialog.js';
+import { toast, hideToast } from '/assets/common/toast.js';
 import { loadFont } from '/assets/init/fonts.js';
 import { applyTheme, applyColor } from '/assets/init/themes.js';
 
@@ -82,6 +84,35 @@ const getSetting = key => localStorage.getItem(`setting_${key}`) ?? defaults[key
 const saveSetting = (key, value) => localStorage.setItem(`setting_${key}`, value);
 const idMap = { language: 'lang', theme: 'theme', font: 'font', color: 'color' };
 
+const waitFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+async function clearUserDataAndExit() {
+  toast.loading(getI18n('settings', 'clearingData'));
+  await waitFrame();
+  localStorage.clear();
+  hideToast();
+  window.location.href = 'https://www.pylin.cn/';
+}
+
+function showAgreementCancelDialog(agreementSwitch) {
+  Dialog.show({
+    style: '3',
+    title: getI18n('settings', 'continueConfirmTitle'),
+    content: `<p class="settings-agreement-dialog-content">${getI18n('settings', 'continueConfirmContent')}</p>`,
+    buttons: [
+      { text: getI18n('settings', 'back') },
+      { text: getI18n('settings', 'continue'), type: 'warn' }
+    ],
+    onClose: (index) => {
+      if (index === 1) {
+        clearUserDataAndExit();
+        return;
+      }
+      agreementSwitch.checked = true;
+    }
+  });
+}
+
 export async function load(container) {
   const config = getConfig();
   const response = await fetch('/assets/subpages/settings/settings.html');
@@ -148,6 +179,17 @@ export async function load(container) {
     watermarkInput.value = localStorage.getItem('setting_watermark') ?? '';
     watermarkInput.addEventListener('blur', () => {
       localStorage.setItem('setting_watermark', watermarkInput.value);
+    });
+  }
+
+  // 用户协议与隐私政策开关
+  const agreementSwitch = container.querySelector('#js_switch_agreement');
+  if (agreementSwitch) {
+    agreementSwitch.checked = true;
+    agreementSwitch.addEventListener('change', () => {
+      if (!agreementSwitch.checked) {
+        showAgreementCancelDialog(agreementSwitch);
+      }
     });
   }
 

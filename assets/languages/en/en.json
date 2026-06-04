@@ -157,6 +157,13 @@
     "colorDistantCyan": "Distant Cyan",
     "colorFreedomOrange": "Freedom Orange",
     "courseWatermark": "Course Watermark",
-    "watermarkPlaceholder": "Enter watermark text"
+    "watermarkPlaceholder": "Enter watermark text",
+    "agreementPolicy": "User Agreement & Privacy Policy",
+    "agreementAccepted": "I have read and agree",
+    "continueConfirmTitle": "Continue?",
+    "continueConfirmContent": "Disagreeing with the agreement and policy will clear your data and exit",
+    "back": "Back",
+    "continue": "Continue",
+    "clearingData": "Clearing..."
   }
 }
