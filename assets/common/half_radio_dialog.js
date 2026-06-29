@@ -3,6 +3,40 @@
 import { mask } from '/assets/common/mask.js';
 
 const POPUP_LAYER_ID = 'xykcb-popup-layer';
+const HALF_RADIO_DIALOG_STYLE_ID = 'xykcb-half-radio-dialog-style';
+
+function ensureHalfRadioDialogStyle() {
+  if (document.getElementById(HALF_RADIO_DIALOG_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = HALF_RADIO_DIALOG_STYLE_ID;
+  style.textContent = `
+    .xykcb-half-radio-dialog {
+      overflow: hidden;
+    }
+
+    .xykcb-half-radio-dialog .weui-half-screen-dialog__bd {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      box-sizing: border-box;
+    }
+
+    .xykcb-half-radio-dialog .weui-cells {
+      margin-top: 0;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .xykcb-half-radio-dialog.scrollbar-enabled .weui-half-screen-dialog__bd {
+      --xykcb-scrollbar-offset: 8px;
+      width: calc(100% + var(--xykcb-scrollbar-offset));
+      margin-inline-end: calc(-1 * var(--xykcb-scrollbar-offset));
+      padding-inline-end: var(--xykcb-scrollbar-offset);
+      scrollbar-gutter: auto;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 
 function ensurePopupLayer() {
   let layer = document.getElementById(POPUP_LAYER_ID);
@@ -19,6 +53,7 @@ const HalfRadioDialog = {
   show: function ({ title, options, selected, onChange }) {
     const DIALOG_ID = 'halfRadioDialogWrap';
     document.getElementById(DIALOG_ID)?.remove();
+    ensureHalfRadioDialogStyle();
 
     // 生成选项列表
     const items = options.map(opt => `
@@ -37,7 +72,7 @@ const HalfRadioDialog = {
     wrap.id = DIALOG_ID;
     wrap.style.cssText = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none;';
     wrap.innerHTML = `
-      <div class="weui-half-screen-dialog${scrollbarClass}" style="background-color: var(--weui-BG-1)">
+      <div class="weui-half-screen-dialog xykcb-half-radio-dialog${scrollbarClass}" style="background-color: var(--weui-BG-1)">
         <div class="weui-half-screen-dialog__hd">
           <div class="weui-half-screen-dialog__hd__main">
             <strong class="weui-half-screen-dialog__title">${title}</strong>

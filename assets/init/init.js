@@ -5,25 +5,50 @@ import { initWelcome } from '/assets/subpages/welcome/welcome.js';
 import { API_CONFIG } from '/assets/common/api.js';
 import { initWedata } from '/assets/init/wedata.js';
 
-// 解析 App UA: xykcb_app/260303 (Platform/Android; Channel/Xiaomi;) 或 miniProgram
+// 统一解析运行环境。Android APP 的环境由原生层通过 UA / bridge 从源头提供，业务页面只读取这里落库后的结果。
 const ua = navigator.userAgent;
 const webVersion = API_CONFIG.WEB_VERSION;
 
-// 解析操作系统: Android/iPhone(iOS)/Mac/macOS/Windows/Linux/HarmonyOS
-const platformMap = { 'Android': 'Android', 'iPhone': 'iOS', 'iPad': 'iOS', 'Mac': 'macOS', 'Windows': 'Windows', 'Linux': 'Linux', 'HarmonyOS': 'HarmonyOS' };
-const parsePlatform = (ua) => { const k = Object.keys(platformMap).find(k => ua.includes(k)); return k ? platformMap[k] : ''; };
+// 解析操作系统: Android/iPhone(iOS)/Mac(macOS)/Windows/Linux/HarmonyOS
+const platformMap = { Android: 'Android', iPhone: 'iOS', iPad: 'iOS', Mac: 'macOS', Windows: 'Windows', Linux: 'Linux', HarmonyOS: 'HarmonyOS' };
+const parsePlatform = (sourceUa) => {
+  const key = Object.keys(platformMap).find(k => sourceUa.includes(k));
+  return key ? platformMap[key] : '';
+};
 
-// 匹配原生APP: xykcb_app/版本 (Platform/平台; Channel/渠道)
-const nativeAppMatch = ua.match(/xykcb_app\/([\d.]+)(?:; Platform\/([^;]+))?(?:; Channel\/([^;]+))?/);
+const readJson = (value) => {
+  if (!value || typeof value !== 'string') return {};
+  try { return JSON.parse(value); } catch (e) { return {}; }
+};
+
+const readNativeBridgeEnv = () => {
+  try {
+    const getter = window.XykcbAndroidSystemUi?.getAppEnvironment;
+    return typeof getter === 'function' ? readJson(getter.call(window.XykcbAndroidSystemUi)) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+// 匹配原生 APP UA:
+// xykcb_app/260628 (Platform/Android; Channel/Xiaomi;)
+// xykcb_app/260628; Platform/Android; Channel/Xiaomi
+const nativeAppMatch = ua.match(/xykcb_app\/([\w.-]+)/);
+const nativePlatformMatch = ua.match(/Platform\/([^;)]+)/);
+const nativeChannelMatch = ua.match(/Channel\/([^;)]+)/);
+const bridgeEnv = readNativeBridgeEnv();
+const explicitEnv = window.__XYKCB_APP_ENV__ || {};
+const nativeEnv = { ...bridgeEnv, ...explicitEnv };
+const isNativeApp = nativeEnv.type === 'app' || !!nativeAppMatch;
 const isMiniProgram = ua.includes('miniProgram');
 
 let appType, appVersion, appPlatform, appChannel;
 
-if (nativeAppMatch) {
+if (isNativeApp) {
   appType = 'app';
-  appVersion = nativeAppMatch[1] || '';
-  appPlatform = nativeAppMatch[2] || '';
-  appChannel = nativeAppMatch[3] || '';
+  appVersion = nativeEnv.version || nativeEnv.versionCode || nativeAppMatch?.[1] || localStorage.getItem('setting_app_version') || webVersion;
+  appPlatform = nativeEnv.platform || nativePlatformMatch?.[1] || localStorage.getItem('setting_app_platform') || parsePlatform(ua) || 'Android';
+  appChannel = nativeEnv.channel || nativeChannelMatch?.[1] || localStorage.getItem('setting_app_channel') || 'Android';
 } else if (isMiniProgram) {
   appType = 'miniapp';
   appVersion = webVersion;

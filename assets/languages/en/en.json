@@ -122,6 +122,7 @@
     "function": "Function"
   },
   "settings": {
+    "appSettings": "App Settings",
     "appearance": "Interface & Style",
     "language": "Language",
     "theme": "Theme",

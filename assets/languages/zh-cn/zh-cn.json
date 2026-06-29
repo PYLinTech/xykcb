@@ -122,6 +122,7 @@
     "function": "功能"
   },
   "settings": {
+    "appSettings": "APP 设置",
     "appearance": "界面与样式",
     "language": "语言",
     "theme": "主题",

@@ -85,6 +85,11 @@ const saveSetting = (key, value) => localStorage.setItem(`setting_${key}`, value
 const idMap = { language: 'lang', theme: 'theme', font: 'font', color: 'color' };
 
 const waitFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+const getAppInfoParts = () => [
+  localStorage.getItem('setting_app_version') ? `v${localStorage.getItem('setting_app_version')}` : '',
+  localStorage.getItem('setting_app_channel') || '',
+  localStorage.getItem('setting_app_platform') || ''
+].filter(Boolean);
 
 async function clearUserDataAndExit() {
   toast.loading(getI18n('settings', 'clearingData'));
@@ -113,11 +118,31 @@ function showAgreementCancelDialog(agreementSwitch) {
   });
 }
 
+function canOpenAppSettings() {
+  return typeof window.XykcbAndroidSystemUi?.openAppSettings === 'function';
+}
+
+function isNativeAppRuntime() {
+  return localStorage.getItem('setting_app_type') === 'app';
+}
+
+function openAppSettings() {
+  if (canOpenAppSettings()) window.XykcbAndroidSystemUi.openAppSettings();
+}
+
 export async function load(container) {
   const config = getConfig();
   const response = await fetch('/assets/subpages/settings/settings.html');
   container.innerHTML = await response.text();
   await translatePage('settings', container);
+
+  // APP 版专属设置入口。环境类型由 assets/init/init.js 统一写入。
+  const appSettingsSection = container.querySelector('#js_app_settings_section');
+  const appSettingsCell = container.querySelector('#js_cell_app_hd, #js_cell_app_bd, #js_cell_app_ft')?.closest('.weui-cell');
+  if (isNativeAppRuntime() && appSettingsSection && appSettingsCell) {
+    appSettingsSection.style.display = '';
+    appSettingsCell.addEventListener('click', openAppSettings);
+  }
 
   Object.keys(config).forEach(key => {
     const id = idMap[key];
@@ -194,14 +219,9 @@ export async function load(container) {
   }
 
   // 渲染版本信息: v版本 · 渠道 · 平台
-  const appVersion = localStorage.getItem('setting_app_version');
-  const appPlatform = localStorage.getItem('setting_app_platform');
-  const appChannel = localStorage.getItem('setting_app_channel');
-  const versionText = appVersion ? `v${appVersion}` : '';
-  const channelText = appChannel || '';
-  const platformText = appPlatform || '';
-  const parts = [versionText, channelText, platformText].filter(Boolean);
-  container.querySelector('#js_app_version').textContent = parts.join(' · ');
-  container.querySelector('#js_app_channel').textContent = '';
-  container.querySelector('#js_app_platform').textContent = '';
+  container.querySelector('#js_app_version').textContent = getAppInfoParts().join(' · ');
+  const appChannelEl = container.querySelector('#js_app_channel');
+  const appPlatformEl = container.querySelector('#js_app_platform');
+  if (appChannelEl) appChannelEl.textContent = '';
+  if (appPlatformEl) appPlatformEl.textContent = '';
 }

@@ -1,0 +1,249 @@
+<div id="evaluation_content">
+    <div id="evaluation_list"></div>
+    <div id="js_back_top" class="back-top"><i class="ri-arrow-up-line"></i></div>
+</div>
+
+<script type="module">
+    import { API_CONFIG, fetchWithTimeout, withQuery } from '/assets/common/api.js';
+    import { toast, hideToast } from '/assets/common/toast.js';
+    import { getI18n, getCurrentLang } from '/assets/init/languages.js';
+
+    const BASE_URL = API_CONFIG.BASE_URL;
+    const container = document.getElementById('evaluation_content');
+    const list = document.getElementById('evaluation_list');
+    const backTopBtn = document.getElementById('js_back_top');
+    const getSavedUser = () => JSON.parse(localStorage.getItem('login_user') || 'null');
+    const getScrollContainer = () => document.querySelector('.overlay-content') || container;
+    const i18n = {
+        'zh-cn': { title: '教学评价', batches: '评价批次', teachers: '待评教师', noBatch: '暂无评价批次', noCourse: '暂无待评价教师', enter: '评价', saved: '已评', submitted: '已提交', submittedText: '已提交：', back: '返回', full: '一键满分', save: '保存', submit: '提交', saving: '提交中...', saveOk: '保存成功', submitOk: '提交成功', chooseAll: '请完成所有指标选择', confirmSubmit: '提交后通常不能修改，确认提交？' },
+        'en': { title: 'Teaching Evaluation', batches: 'Batches', teachers: 'Teachers', noBatch: 'No evaluation batch', noCourse: 'No teacher to evaluate', enter: 'Evaluate', saved: 'Saved', submitted: 'Submitted', submittedText: 'Submitted: ', back: 'Back', full: 'Full Score', save: 'Save', submit: 'Submit', saving: 'Submitting...', saveOk: 'Saved', submitOk: 'Submitted', chooseAll: 'Please complete all indicators', confirmSubmit: 'Usually cannot edit after submit. Continue?' }
+    };
+    const t = (key) => i18n[getCurrentLang()]?.[key] || i18n['zh-cn'][key] || key;
+
+    let savedUser = null;
+    let batches = [];
+    let courses = [];
+    let currentBatchUrl = '';
+    let currentCourse = null;
+    let currentForm = null;
+    let selections = {};
+
+    function params(extra = {}) {
+        const { school, account, password } = savedUser || {};
+        return { school, account, password, ...extra };
+    }
+
+    function bindEvents() {
+        const scrollContainer = getScrollContainer();
+        backTopBtn?.addEventListener('click', () => scrollContainer.scrollTo({ top: 0, behavior: 'smooth' }));
+        scrollContainer.addEventListener('scroll', () => backTopBtn?.classList.toggle('visible', scrollContainer.scrollTop > 200));
+        container.addEventListener('click', async (e) => {
+            const batch = e.target.closest('[data-batch-url]');
+            const course = e.target.closest('[data-course-index]');
+            if (batch) await loadCourses(batch.dataset.batchUrl);
+            else if (course) await loadForm(courses[Number(course.dataset.courseIndex)]);
+            else if (e.target.closest('#js_eval_back')) renderHome();
+            else if (e.target.closest('#js_full_score')) fullScore();
+            else if (e.target.closest('#js_save_eval')) await submitForm(false);
+            else if (e.target.closest('#js_submit_eval')) await submitForm(true);
+            const option = e.target.closest('[data-indicator][data-value]');
+            if (option) {
+                selections[option.dataset.indicator] = option.dataset.value;
+                renderForm();
+            }
+        });
+    }
+
+    async function loadCenter() {
+        savedUser = savedUser || getSavedUser();
+        toast.loading(getI18n('common', 'toastLoading'));
+        try {
+            const result = await (await fetchWithTimeout(withQuery(`${BASE_URL}/get-hnit-b-evaluation`, params()))).json();
+            hideToast();
+            if (!result.success) {
+                list.innerHTML = `<div class="error">${getI18n('desc_key', result.desc_key || '004')}</div>`;
+                return;
+            }
+            batches = result.data?.batches || [];
+            courses = result.data?.courses || [];
+            currentBatchUrl = batches[0]?.url || '';
+            renderHome();
+        } catch (e) {
+            hideToast();
+            toast.warn(getI18n('desc_key', '000'));
+        }
+    }
+
+    async function loadCourses(path) {
+        currentBatchUrl = path;
+        toast.loading(getI18n('common', 'toastLoading'));
+        try {
+            const result = await (await fetchWithTimeout(withQuery(`${BASE_URL}/get-hnit-b-evaluation-courses`, params({ path })))).json();
+            hideToast();
+            if (!result.success) { toast.warn(getI18n('desc_key', result.desc_key || '004')); return; }
+            courses = result.data || [];
+            renderHome();
+        } catch (e) { hideToast(); toast.warn(getI18n('desc_key', '000')); }
+    }
+
+    async function loadForm(course) {
+        currentCourse = course;
+        selections = {};
+        toast.loading(getI18n('common', 'toastLoading'));
+        try {
+            const result = await (await fetchWithTimeout(withQuery(`${BASE_URL}/get-hnit-b-evaluation-form`, params({ path: course.url })))).json();
+            hideToast();
+            if (!result.success) { toast.warn(getI18n('desc_key', result.desc_key || '004')); return; }
+            currentForm = result.data;
+            renderForm();
+        } catch (e) { hideToast(); toast.warn(getI18n('desc_key', '000')); }
+    }
+
+    function renderHome() {
+        currentForm = null;
+        let html = `<div class="info-card">
+            <div class="info-header">
+                <div class="info-avatar"><i class="ri-star-smile-line"></i></div>
+                <div class="info-main"><div class="info-name">${t('title')}</div><div class="info-id">${savedUser?.account || ''}</div></div>
+                <div class="info-gpa"><div class="info-gpa-value">${courses.length}</div><div class="info-gpa-label">${t('teachers')}</div></div>
+            </div>
+        </div>`;
+
+        html += `<div class="section-title">${t('batches')}</div>`;
+        if (!batches.length) html += `<div class="error">${t('noBatch')}</div>`;
+        else html += `<div class="batch-row">${batches.map(b => `<button class="chip ${b.url === currentBatchUrl ? 'active' : ''}" data-batch-url="${escapeAttr(b.url)}">${escapeHtml(b.courseType || b.batch || b.term)}</button>`).join('')}</div>`;
+
+        html += `<div class="section-title">${t('teachers')}</div>`;
+        if (!courses.length) html += `<div class="error">${t('noCourse')}</div>`;
+        else courses.forEach((c, i) => {
+            const done = c.submitted === '是' || c.saved === '是';
+            html += `<div class="grade-card course-bg-${i % 10}">
+                <span class="grade-badge ${done ? 'badge-pass' : 'badge-pending'}">${done ? t('saved') : t('enter')}</span>
+                <div class="grade-main">
+                    <div class="grade-header"><span class="grade-name">${escapeHtml(c.teacherName)}</span></div>
+                    <div class="grade-info">
+                        <span class="grade-info-item">${escapeHtml(c.teacherNo)}</span>
+                        <span class="grade-info-item">${escapeHtml(c.department)}</span>
+                        <span class="grade-info-item">${escapeHtml(c.type)}</span>
+                        <span class="grade-info-item">${t('submittedText')}${escapeHtml(c.submitted)}</span>
+                    </div>
+                    <button class="action-btn" data-course-index="${i}"><i class="ri-edit-line"></i>${t('enter')}</button>
+                </div>
+            </div>`;
+        });
+        list.innerHTML = html;
+    }
+
+    function renderForm() {
+        const indicators = currentForm?.indicators || [];
+        let html = `<div class="info-card">
+            <div class="info-header">
+                <div class="info-avatar"><i class="ri-edit-box-line"></i></div>
+                <div class="info-main"><div class="info-name">${escapeHtml(currentCourse?.teacherName || t('title'))}</div><div class="info-id">${escapeHtml(currentCourse?.department || '')}</div></div>
+            </div>
+            <div class="info-actions">
+                <button id="js_eval_back" class="semester-select"><i class="ri-arrow-left-line"></i><span>${t('back')}</span></button>
+                <button id="js_full_score" class="semester-select"><i class="ri-sparkling-line"></i><span>${t('full')}</span></button>
+            </div>
+        </div>`;
+
+        indicators.forEach((item, i) => {
+            html += `<div class="indicator-card">
+                <div class="indicator-title">${i + 1}. ${escapeHtml(item.title)}</div>
+                <div class="option-row">${(item.options || []).map((opt, idx) => {
+                    const active = selections[item.name] === opt.value;
+                    return `<button class="option-chip ${active ? 'active' : ''}" data-indicator="${escapeAttr(item.name)}" data-value="${escapeAttr(opt.value)}">${escapeHtml(opt.label)}</button>`;
+                }).join('')}</div>
+            </div>`;
+        });
+
+        html += `<div class="submit-bar">
+            <button id="js_save_eval" class="submit-btn secondary"><i class="ri-save-line"></i>${t('save')}</button>
+            <button id="js_submit_eval" class="submit-btn primary"><i class="ri-send-plane-line"></i>${t('submit')}</button>
+        </div>`;
+        list.innerHTML = html;
+    }
+
+    function fullScore() {
+        for (const item of currentForm?.indicators || []) {
+            if (item.options?.length) selections[item.name] = item.options[0].value;
+        }
+        renderForm();
+    }
+
+    async function submitForm(submit) {
+        const indicators = currentForm?.indicators || [];
+        if (indicators.some(item => !selections[item.name])) {
+            toast.warn(t('chooseAll'));
+            return;
+        }
+        if (submit && !confirm(t('confirmSubmit'))) return;
+        const fields = JSON.parse(JSON.stringify(currentForm.fields || {}));
+        for (const item of indicators) fields[item.name] = selections[item.name];
+        toast.loading(t('saving'));
+        try {
+            const payload = JSON.stringify({ fields, submit });
+            const result = await (await fetchWithTimeout(withQuery(`${BASE_URL}/submit-hnit-b-evaluation`, params({ payload })))).json();
+            hideToast();
+            if (!result.success) { toast.warn(getI18n('desc_key', result.desc_key || '004')); return; }
+            toast.success(submit ? t('submitOk') : t('saveOk'));
+            await loadCourses(currentBatchUrl);
+        } catch (e) { hideToast(); toast.warn(getI18n('desc_key', '000')); }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    const escapeAttr = escapeHtml;
+
+    requestAnimationFrame(() => {
+        bindEvents();
+        loadCenter();
+    });
+</script>
+
+<style>
+    :root { --grade-bg-0: #c8e6c9; --grade-bg-1: #bbdefb; --grade-bg-2: #ffe0b2; --grade-bg-3: #f8bbd9; --grade-bg-4: #e1bee7; --grade-bg-5: #b2dfdb; --grade-bg-6: #fff9c4; --grade-bg-7: #d1c4e9; --grade-bg-8: #c5cae9; --grade-bg-9: #ffcdd2; --eval-surface: rgba(255,255,255,0.2); --eval-soft: rgba(255,255,255,0.28); --eval-soft-active: rgba(255,255,255,0.38); --eval-border: rgba(255,255,255,0.22); }
+    [data-weui-theme="dark"] { --grade-bg-0: #4a7c45; --grade-bg-1: #3d6a99; --grade-bg-2: #997a45; --grade-bg-3: #994d6a; --grade-bg-4: #7a4a99; --grade-bg-5: #458c85; --grade-bg-6: #999045; --grade-bg-7: #5f4a99; --grade-bg-8: #4a5c99; --grade-bg-9: #994a4a; --eval-surface: rgba(255,255,255,0.12); --eval-soft: rgba(255,255,255,0.14); --eval-soft-active: rgba(255,255,255,0.22); --eval-border: rgba(255,255,255,0.16); }
+    @media (prefers-color-scheme: dark) { body:not([data-weui-theme="light"]) { --grade-bg-0: #4a7c45; --grade-bg-1: #3d6a99; --grade-bg-2: #997a45; --grade-bg-3: #994d6a; --grade-bg-4: #7a4a99; --grade-bg-5: #458c85; --grade-bg-6: #999045; --grade-bg-7: #5f4a99; --grade-bg-8: #4a5c99; --grade-bg-9: #994a4a; --eval-surface: rgba(255,255,255,0.12); --eval-soft: rgba(255,255,255,0.14); --eval-soft-active: rgba(255,255,255,0.22); --eval-border: rgba(255,255,255,0.16); } }
+    .course-bg-0 { background-color: var(--grade-bg-0); } .course-bg-1 { background-color: var(--grade-bg-1); } .course-bg-2 { background-color: var(--grade-bg-2); } .course-bg-3 { background-color: var(--grade-bg-3); } .course-bg-4 { background-color: var(--grade-bg-4); } .course-bg-5 { background-color: var(--grade-bg-5); } .course-bg-6 { background-color: var(--grade-bg-6); } .course-bg-7 { background-color: var(--grade-bg-7); } .course-bg-8 { background-color: var(--grade-bg-8); } .course-bg-9 { background-color: var(--grade-bg-9); }
+    #evaluation_content { display: flex; flex-direction: column; min-height: 100%; }
+    #evaluation_list { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; box-sizing: border-box; }
+    #evaluation_list .info-card, #evaluation_list .section-title, #evaluation_list .batch-row, #evaluation_list .submit-bar { grid-column: 1 / -1; }
+    .info-card { background: var(--eval-surface); border-radius: 14px; padding: 12px; margin-bottom: 4px; border: 1px solid var(--eval-border); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .info-header { display: flex; align-items: center; gap: 12px; }
+    .info-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--weui-BRAND); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; flex-shrink: 0; }
+    .info-main { flex: 1; min-width: 0; }
+    .info-name { font-size: 16px; font-weight: 600; color: var(--weui-FG-0); overflow-wrap: anywhere; }
+    .info-id { font-size: 12px; color: var(--weui-FG-1); margin-top: 1px; }
+    .info-gpa { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-left: 12px; border-left: 1px solid var(--weui-FG-4); min-width: 58px; }
+    .info-gpa-value { font-size: 19px; font-weight: 700; color: var(--weui-BRAND); line-height: 1.15; }
+    .info-gpa-label { font-size: 10px; color: var(--weui-FG-1); }
+    .info-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .semester-select, .chip, .action-btn, .option-chip, .submit-btn { border: 0; font: inherit; cursor: pointer; }
+    .semester-select { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 12px; background: var(--eval-soft); border-radius: 18px; font-size: 13px; color: var(--weui-FG-0); flex: 1; min-height: 38px; box-sizing: border-box; }
+    .semester-select:active, .chip:active, .action-btn:active, .option-chip:active { background: var(--eval-soft-active); }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--weui-FG-1); padding: 2px 4px 0; }
+    .batch-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { padding: 7px 10px; border-radius: 16px; color: var(--weui-FG-0); background: var(--eval-soft); font-size: 12px; max-width: 100%; overflow-wrap: anywhere; }
+    .chip.active, .option-chip.active { background: var(--weui-BRAND); color: #fff; }
+    .grade-card, .indicator-card { border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; min-width: 0; }
+    .indicator-card { background: var(--eval-surface); padding: 10px; grid-column: 1 / -1; border: 1px solid var(--eval-border); }
+    .grade-main { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .grade-name { font-size: 14px; color: var(--weui-FG-0); font-weight: 600; padding-right: 58px; overflow-wrap: anywhere; line-height: 1.3; }
+    .indicator-title { font-size: 14px; color: var(--weui-FG-0); font-weight: 600; overflow-wrap: anywhere; line-height: 1.35; }
+    .grade-info { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+    .grade-info-item { font-size: 11px; color: var(--weui-FG-0); padding: 1px 4px; line-height: 1.35; }
+    .grade-badge { position: absolute; top: 0; right: 0; padding: 3px 8px; font-size: 10px; font-weight: 500; border-radius: 0 10px 0 10px; }
+    .badge-pass { background: #52c41a; color: #fff; } .badge-pending { background: #faad14; color: #fff; }
+    .action-btn { align-self: flex-end; display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 16px; background: var(--eval-soft); color: var(--weui-FG-0); font-size: 12px; min-height: 32px; box-sizing: border-box; }
+    .option-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .option-chip { padding: 7px 9px; border-radius: 16px; background: var(--eval-soft); color: var(--weui-FG-0); max-width: 100%; overflow-wrap: anywhere; font-size: 12px; line-height: 1.25; }
+    .submit-bar { display: flex; gap: 8px; position: sticky; bottom: 10px; z-index: 20; }
+    .submit-btn { flex: 1; border-radius: 18px; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 13px; min-height: 40px; }
+    .submit-btn.primary { background: var(--weui-BRAND); color: #fff; }
+    .submit-btn.secondary { background: var(--eval-soft); color: var(--weui-FG-0); }
+    .error { text-align: center; padding: 40px; color: var(--weui-FG-1); grid-column: 1 / -1; }
+    .back-top { position: fixed; bottom: 180px; right: 18px; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.2); color: var(--weui-FG-0); visibility: hidden; opacity: 0; transform: scale(0.8); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 500; transition: opacity 0.12s ease, transform 0.12s, visibility 0.12s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); font-size: 22px; }
+    .back-top.visible { visibility: visible; opacity: 1; transform: scale(1); }
+</style>

@@ -13,6 +13,7 @@ const tabIconMap = {
 const MAX_CACHE_SIZE = 3; // 最多缓存 3 个页面
 const cache = new Map();
 let current = null;
+let overlayCleanupTimer = null;
 const container = document.getElementById('page-container');
 const tabbar = document.getElementById('tabbar');
 
@@ -70,6 +71,10 @@ async function switchPage(pageName) {
 
 export async function showOverlay(pageName, html) {
   const overlay = document.getElementById('overlay');
+  if (overlayCleanupTimer) {
+    clearTimeout(overlayCleanupTimer);
+    overlayCleanupTimer = null;
+  }
   overlay.innerHTML = html;
 
   // 执行内联脚本
@@ -97,6 +102,12 @@ export function hideOverlay() {
   const overlay = document.getElementById('overlay');
   overlay.classList.remove('show');
   document.body.classList.remove('xykcb-overlay-open');
+  // 动态插件的 <style> 位于 overlay 内，隐藏后仍会参与全局 CSS 级联；先移除样式，再延迟清空内容。
+  overlay.querySelectorAll('style').forEach(style => style.remove());
+  overlayCleanupTimer = setTimeout(() => {
+    if (!overlay.classList.contains('show')) overlay.innerHTML = '';
+    overlayCleanupTimer = null;
+  }, 260);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
