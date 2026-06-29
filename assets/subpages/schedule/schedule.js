@@ -407,7 +407,7 @@ function renderDayViewCourses(container) {
                 const rightInfo = document.createElement('div');
                 rightInfo.style.cssText = 'flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; overflow: hidden;';
 
-                const nameStyle = 'font-size: 16px; color: var(--weui-FG-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4;';
+                const nameStyle = 'font-size: 16px; color: var(--weui-FG-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; min-width: 0; overflow-wrap: anywhere; word-break: break-word;';
                 const metaStyle = 'font-size: 12px; color: var(--weui-FG-1); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px;';
 
                 let metaHtml = '';
@@ -684,8 +684,9 @@ function renderWeekView(container) {
         const multipleIndicator = cellCourses.length > 1
             ? `<div style="position: absolute; top: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 12px 12px 0; border-color: transparent #ff4d4f transparent transparent;"></div>`
             : '';
-        const teacherHtml = displayTeacher ? `<div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 6px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.teacher)}</div>` : '';
-        cell.innerHTML = `<div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px;">${multipleIndicator}<div style="font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.name)}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 8px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(course.location)}</div>${teacherHtml}</div>`;
+        const compactTextStyle = 'min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word;';
+        const teacherHtml = displayTeacher ? `<div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 6px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; ${compactTextStyle}">${escapeHtml(course.teacher)}</div>` : '';
+        cell.innerHTML = `<div style="position: relative; width: 100%; height: 100%; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px;">${multipleIndicator}<div style="font-size: 12px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; ${compactTextStyle}">${escapeHtml(course.name)}</div><div style="font-size: 10px; color: var(--weui-FG-1); margin-top: 8px; line-height: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; ${compactTextStyle}">${escapeHtml(course.location)}</div>${teacherHtml}</div>`;
         cell.classList.add(`course-bg-${getCourseColorIndex(course)}`);
         cell.style.position = 'relative';
         cell.style.overflow = 'hidden';
