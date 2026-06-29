@@ -14,7 +14,7 @@ const defaults = {
   showTeacher: 'true',
   showBorder: 'true',
   showLargeSection: 'true',
-  autoUpdate: 'true'
+  autoUpdate: 'false'
 };
 
 const i18nKeys = {

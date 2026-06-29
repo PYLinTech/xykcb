@@ -186,7 +186,7 @@ const showBorder = () => getSetting('showBorder') === 'true';
 const showLargeSection = () => getSetting('showLargeSection') === 'true';
 const watermarkEnabled = () => (localStorage.getItem('setting_watermarkEnabled') ?? 'true') === 'true';
 const watermarkText = () => localStorage.getItem('setting_watermark') ?? '';
-const startupUpdateEnabled = () => getSetting('autoUpdate') === 'true';
+const startupUpdateEnabled = () => (localStorage.getItem('setting_autoUpdate') ?? 'false') === 'true';
 
 const getCourseColorIndex = (course) => {
     const name = course.name || '';
