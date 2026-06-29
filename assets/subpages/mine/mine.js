@@ -7,6 +7,9 @@ import { API, fetchWithTimeout } from '/assets/common/api.js';
 // 暴露到全局供动态加载的脚本调用
 window.hideOverlay = hideOverlay;
 
+let loginSuccessHandler = null;
+let functionsLoadSeq = 0;
+
 // 远程功能弹窗模板样式
 const OVERLAY_STYLE = `
 <style>
@@ -20,23 +23,27 @@ const OVERLAY_STYLE = `
 
 // 加载功能列表
 async function loadFunctions(container) {
+    const seq = ++functionsLoadSeq;
     const savedUser = getSavedUser();
-    if (!savedUser?.school || savedUser.isLoggedIn === false) return;
+    const grid = container.querySelector('#js_functions_grid');
+    const panel = container.querySelector('#js_functions_panel');
+
+    if (grid) grid.innerHTML = '';
+    if (panel) panel.style.display = 'none';
+
+    if (!savedUser?.school || savedUser.isLoggedIn === false || !grid || !panel) return;
 
     try {
         const response = await fetchWithTimeout(API.getSupportFunction(savedUser.school));
         const result = await response.json();
+        const latestUser = getSavedUser();
+        if (seq !== functionsLoadSeq || latestUser?.school !== savedUser.school || latestUser?.account !== savedUser.account) return;
         if (!result.success || !result.data?.length) return;
 
         // 按id排序
         const functions = result.data.sort((a, b) => a.id.localeCompare(b.id));
 
-        const grid = container.querySelector('#js_functions_grid');
-        const panel = container.querySelector('#js_functions_panel');
         const lang = getCurrentLang();
-
-        // 先清空现有功能
-        grid.innerHTML = '';
 
         for (const func of functions) {
             const label = func[lang] || func['zh-cn'] || func.en;
@@ -86,6 +93,8 @@ function updateLoginState(container) {
     const accountDesc = container.querySelector('#js_account_desc');
     const loginBtnText = container.querySelector('#js_login_btn_text');
 
+    if (!accountIcon || !accountTitle || !accountDesc || !loginBtnText) return;
+
     if (isLoggedIn && savedUser) {
         // 已登录状态
         accountIcon.className = 'ri-emotion-happy-line';
@@ -107,6 +116,11 @@ function updateLoginState(container) {
     }
 }
 
+async function refreshMinePage(container) {
+    updateLoginState(container);
+    await loadFunctions(container);
+}
+
 // 我的页
 export async function load(container) {
     const response = await fetch('/assets/subpages/mine/mine.html');
@@ -114,17 +128,18 @@ export async function load(container) {
     container.innerHTML = html;
     await translatePage('mine', container);
 
-    // 初始化登录状态显示
-    updateLoginState(container);
+    if (loginSuccessHandler) {
+        window.removeEventListener('login-success', loginSuccessHandler);
+    }
 
-    // 加载功能列表
-    await loadFunctions(container);
+    loginSuccessHandler = () => {
+        refreshMinePage(container);
+    };
 
-    // 监听登录成功事件（使用 once 防止重复绑定）
-    window.addEventListener('login-success', () => {
-        updateLoginState(container);
-        loadFunctions(container);
-    }, { once: true });
+    window.addEventListener('login-success', loginSuccessHandler);
+
+    // 初始化账号信息和功能列表
+    await refreshMinePage(container);
 
     // 点击去登录/重新登录按钮
     container.querySelector('#js_go_login').addEventListener('click', loadLogin);
