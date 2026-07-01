@@ -1,7 +1,7 @@
 import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
-import { getI18n } from '/assets/init/languages.js';
+import { getI18n, getCurrentLang } from '/assets/init/languages.js';
 import { API, fetchWithTimeout, withQuery } from '/assets/common/api.js';
 import { parseCourseDataResponse } from '/assets/common/course_data_adapter.js';
 
@@ -14,6 +14,15 @@ export const getSavedUser = () => JSON.parse(localStorage.getItem(LOGIN_USER_KEY
 const saveUser = (school, account, password, isLoggedIn = true) => {
   localStorage.setItem(LOGIN_USER_KEY, JSON.stringify({ school, account, password, isLoggedIn }));
 };
+
+function getLoginResponseDesc(result) {
+  const lang = getCurrentLang();
+  const desc = result?.desc;
+  if (desc && typeof desc === 'object') {
+    return desc[lang] || desc['zh-cn'] || desc.en || getI18n('desc_key', result?.desc_key || '004');
+  }
+  return getI18n('desc_key', result?.desc_key || '004');
+}
 const saveCourseData = (data) => {
   localStorage.setItem(COURSE_DATA_KEY, JSON.stringify(data));
 };
@@ -161,8 +170,7 @@ async function fetchCourseData(school, account, password, loadingKey = 'toastLog
     const result = await res.json();
 
     if (!result.success || !result.data) {
-      const descKey = result.desc_key || '004';
-      if (showToast) toast.warn(getI18n('desc_key', descKey));
+      if (showToast) toast.warn(getLoginResponseDesc(result));
       return null;
     }
 
