@@ -61,11 +61,12 @@ function openFunctionLink(func) {
     }
 }
 
-function openWechatFunction(func) {
+async function openWechatFunction(func) {
     const type = getFunctionType(func);
     const params = new URLSearchParams({ type, target: func.url || '' });
     const redirectUrl = `/pages/redirect/redirect?${params.toString()}`;
-    const navigateTo = window.wx?.miniProgram?.navigateTo;
+    const wxApi = await window.xykcbWechatReady?.catch(() => null);
+    const navigateTo = wxApi?.miniProgram?.navigateTo;
     if (typeof navigateTo !== 'function') {
         showJumpFailed();
         return;

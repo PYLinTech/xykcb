@@ -65,19 +65,21 @@ localStorage.setItem('setting_app_platform', appPlatform);
 localStorage.setItem('setting_app_channel', appChannel);
 localStorage.setItem('setting_app_type', appType);
 
-function initWechatJSSDK() {
-  if (appChannel !== 'WeChat') return Promise.resolve();
-  if (window.wx?.miniProgram) return Promise.resolve();
+function loadWechatJSSDK() {
+  if (appChannel !== 'WeChat') return Promise.resolve(null);
+  if (window.wx?.miniProgram) return Promise.resolve(window.wx);
 
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = 'https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
     script.async = true;
-    script.onload = resolve;
+    script.onload = () => resolve(window.wx || null);
     script.onerror = () => reject(new Error('Failed to load WeChat JSSDK'));
     document.head.appendChild(script);
   });
 }
+
+window.xykcbWechatReady = loadWechatJSSDK();
 
 // 并行初始化所有模块
 // initWelcome 不是 async，需要用 Promise.resolve 包装
@@ -85,6 +87,6 @@ Promise.all([
   initFont(),
   initTheme(),
   initLanguage(),
-  initWechatJSSDK(),
+  window.xykcbWechatReady,
   Promise.resolve(initWelcome())
 ]).catch(err => console.error('Init error:', err));
