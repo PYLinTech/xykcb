@@ -6,7 +6,7 @@ const CONFIG = {
   // CDN 地址
   CDN_URL: '/libraries',
   // Web/小程序版本号
-  WEB_VERSION: '2605190111',
+  WEB_VERSION: '2607020008',
   // 外部跳转链接
   EXIT_URL: 'https://www.pylin.cn',
   // 公告配置地址

@@ -120,7 +120,8 @@
     "reLogin": "Sign in Again",
     "functions": "Functions",
     "function": "Function",
-    "jumpFailed": "Jump failed"
+    "jumpFailed": "Jump failed",
+    "loadFailed": "Load failed"
   },
   "settings": {
     "appSettings": "App Settings",

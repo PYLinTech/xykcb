@@ -52,6 +52,11 @@ function showJumpFailed() {
     toast.warn(getI18n('mine', 'jumpFailed'));
 }
 
+function showLoadFailed() {
+    hideToast();
+    toast.warn(getI18n('mine', 'loadFailed'));
+}
+
 function openFunctionLink(func) {
     if (getFunctionTarget(func) === 'new') {
         const opened = window.open(func.url, '_blank', 'noopener,noreferrer');
@@ -62,16 +67,38 @@ function openFunctionLink(func) {
 }
 
 async function openWechatFunction(func) {
-    const type = getFunctionType(func);
-    const params = new URLSearchParams({ type, target: func.url || '' });
-    const redirectUrl = `/pages/redirect/redirect?${params.toString()}`;
-    const wxApi = await window.xykcbWechatReady?.catch(() => null);
-    const navigateTo = wxApi?.miniProgram?.navigateTo;
-    if (typeof navigateTo !== 'function') {
+    try {
+        const type = getFunctionType(func);
+        const params = new URLSearchParams({ type, target: func.url || '' });
+        const redirectUrl = `/pages/redirect/redirect?${params.toString()}`;
+        const miniProgram = (await window.xykcbWechatReady)?.miniProgram;
+        miniProgram.navigateTo({ url: redirectUrl, fail: showJumpFailed });
+    } catch (e) {
         showJumpFailed();
-        return;
     }
-    navigateTo({ url: redirectUrl, fail: showJumpFailed });
+}
+
+async function openPluginFunction(func, title) {
+    try {
+        toast.loading(getI18n('common', 'toastLoading'));
+        const res = await fetch(func.url);
+        if (!res.ok) throw new Error(`Failed to load plugin: ${res.status}`);
+        const html = await res.text();
+        hideToast();
+
+        const wrappedHtml = `${OVERLAY_STYLE}
+            <div id="js_grades_wrp">
+                <div class="overlay-header">
+                    <span class="overlay-title">${title}</span>
+                    <div class="overlay-close" id="overlayClose"><i class="ri-close-line"></i></div>
+                </div>
+                <div class="overlay-content scrollbar-enabled">${html}</div>
+            </div>
+            <script>document.getElementById('overlayClose').onclick = window.hideOverlay;</script>`;
+        showOverlay(null, wrappedHtml);
+    } catch (e) {
+        showLoadFailed();
+    }
 }
 
 // 加载功能列表
@@ -120,32 +147,12 @@ async function loadFunctions(container) {
             item.querySelector('.weui-grid__label').textContent = label;
             item.addEventListener('click', async (event) => {
                 event.preventDefault();
-                if (isLinkFunction(func)) {
-                    openFunctionLink(func);
-                    return;
-                }
-                if (isWechatFunction(func)) {
-                    openWechatFunction(func);
-                    return;
-                }
-
-                toast.loading(getI18n('common', 'toastLoading'));
-                const res = await fetch(func.url);
-                const html = await res.text();
-                hideToast();
-
-                // 构建带框架的 HTML
                 const title = func[lang] || func['zh-cn'] || func.en;
-                const wrappedHtml = `${OVERLAY_STYLE}
-                    <div id="js_grades_wrp">
-                        <div class="overlay-header">
-                            <span class="overlay-title">${title}</span>
-                            <div class="overlay-close" id="overlayClose"><i class="ri-close-line"></i></div>
-                        </div>
-                        <div class="overlay-content scrollbar-enabled">${html}</div>
-                    </div>
-                    <script>document.getElementById('overlayClose').onclick = window.hideOverlay;</script>`;
-                showOverlay(null, wrappedHtml);
+                const type = getFunctionType(func);
+                if (!type) return openPluginFunction(func, title);
+                if (isLinkFunction(func)) return openFunctionLink(func);
+                if (isWechatFunction(func)) return openWechatFunction(func);
+                showJumpFailed();
             });
             grid.appendChild(item);
         }
