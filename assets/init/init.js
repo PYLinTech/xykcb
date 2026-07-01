@@ -3,7 +3,6 @@ import { initTheme } from '/assets/init/themes.js';
 import { initLanguage } from '/assets/init/languages.js';
 import { initWelcome } from '/assets/subpages/welcome/welcome.js';
 import { API_CONFIG } from '/assets/common/api.js';
-import { initWedata } from '/assets/init/wedata.js';
 
 // 统一解析运行环境。Android APP 的环境由原生层通过 UA / bridge 从源头提供，业务页面只读取这里落库后的结果。
 const ua = navigator.userAgent;
@@ -66,12 +65,26 @@ localStorage.setItem('setting_app_platform', appPlatform);
 localStorage.setItem('setting_app_channel', appChannel);
 localStorage.setItem('setting_app_type', appType);
 
+function initWechatJSSDK() {
+  if (appChannel !== 'WeChat') return Promise.resolve();
+  if (window.wx?.miniProgram) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Failed to load WeChat JSSDK'));
+    document.head.appendChild(script);
+  });
+}
+
 // 并行初始化所有模块
 // initWelcome 不是 async，需要用 Promise.resolve 包装
 Promise.all([
   initFont(),
   initTheme(),
   initLanguage(),
-  initWedata(),           // 微信分析工具
+  initWechatJSSDK(),
   Promise.resolve(initWelcome())
 ]).catch(err => console.error('Init error:', err));

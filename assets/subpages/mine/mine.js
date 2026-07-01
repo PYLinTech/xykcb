@@ -9,6 +9,7 @@ window.hideOverlay = hideOverlay;
 
 let loginSuccessHandler = null;
 let functionsLoadSeq = 0;
+const WECHAT_FUNCTION_TYPES = ['wechat_miniapp', 'wechat_link'];
 
 // 远程功能弹窗模板样式
 const OVERLAY_STYLE = `
@@ -20,6 +21,57 @@ const OVERLAY_STYLE = `
     .overlay-close .ri-close-line { color: var(--weui-FG-0); font-size: 16px; }
     .overlay-content { flex: 1; padding: 16px; overflow: auto; }
 </style>`;
+
+function getFunctionTarget(func) {
+    const target = String(func.target || '').toLowerCase();
+    return target === 'new' ? 'new' : 'self';
+}
+
+function getFunctionType(func) {
+    return String(func.type || '').toLowerCase();
+}
+
+function isWechatEnvironment() {
+    const channel = String(localStorage.getItem('setting_app_channel') || '').toLowerCase();
+    return channel === 'wechat';
+}
+
+function shouldShowFunction(func) {
+    return !WECHAT_FUNCTION_TYPES.includes(getFunctionType(func)) || isWechatEnvironment();
+}
+
+function isLinkFunction(func) {
+    return getFunctionType(func) === 'link';
+}
+
+function isWechatFunction(func) {
+    return WECHAT_FUNCTION_TYPES.includes(getFunctionType(func));
+}
+
+function showJumpFailed() {
+    toast.warn(getI18n('mine', 'jumpFailed'));
+}
+
+function openFunctionLink(func) {
+    if (getFunctionTarget(func) === 'new') {
+        const opened = window.open(func.url, '_blank', 'noopener,noreferrer');
+        if (!opened) showJumpFailed();
+    } else {
+        window.location.href = func.url;
+    }
+}
+
+function openWechatFunction(func) {
+    const type = getFunctionType(func);
+    const params = new URLSearchParams({ type, target: func.url || '' });
+    const redirectUrl = `/pages/redirect/redirect?${params.toString()}`;
+    const navigateTo = window.wx?.miniProgram?.navigateTo;
+    if (typeof navigateTo !== 'function') {
+        showJumpFailed();
+        return;
+    }
+    navigateTo({ url: redirectUrl, fail: showJumpFailed });
+}
 
 // 加载功能列表
 async function loadFunctions(container) {
@@ -40,8 +92,12 @@ async function loadFunctions(container) {
         if (seq !== functionsLoadSeq || latestUser?.school !== savedUser.school || latestUser?.account !== savedUser.account) return;
         if (!result.success || !result.data?.length) return;
 
-        // 按id排序
-        const functions = result.data.sort((a, b) => a.id.localeCompare(b.id));
+        // 先过滤再排序，避免仅特定环境显示的功能在其他环境留下空位
+        const functions = result.data
+            .filter(shouldShowFunction)
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        if (!functions.length) return;
 
         const lang = getCurrentLang();
 
@@ -49,14 +105,29 @@ async function loadFunctions(container) {
             const label = func[lang] || func['zh-cn'] || func.en;
             const item = document.createElement('a');
             item.className = 'weui-grid';
-            item.href = 'javascript:;';
+            item.href = isLinkFunction(func) ? func.url : 'javascript:;';
+            if (isLinkFunction(func) && getFunctionTarget(func) === 'new') {
+                item.target = '_blank';
+                item.rel = 'noopener noreferrer';
+            }
             item.innerHTML = `
                 <div class="weui-grid__icon">
                     <i class="ri-function-line" style="font-size: 28px; color: var(--weui-FG-0);"></i>
                 </div>
-                <p class="weui-grid__label">${label}</p>
+                <p class="weui-grid__label"></p>
             `;
-            item.addEventListener('click', async () => {
+            item.querySelector('.weui-grid__label').textContent = label;
+            item.addEventListener('click', async (event) => {
+                event.preventDefault();
+                if (isLinkFunction(func)) {
+                    openFunctionLink(func);
+                    return;
+                }
+                if (isWechatFunction(func)) {
+                    openWechatFunction(func);
+                    return;
+                }
+
                 toast.loading(getI18n('common', 'toastLoading'));
                 const res = await fetch(func.url);
                 const html = await res.text();

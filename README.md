@@ -328,7 +328,83 @@ xykcb/
 - **特性**：
   - 登录后展示用户信息（账号、学校）
   - 从 API 动态加载学校支持的功能列表
-  - 远程功能以 Overlay 弹窗形式加载
+  - 旧远程功能默认以 Overlay 弹窗形式加载
+  - 支持将功能入口配置为超链接，并指定当前页面或新页面打开
+
+**功能列表字段说明**：
+
+`getSupportFunction(school)` 返回的每个功能项至少包含：
+
+```json
+{
+  "id": "1",
+  "url": "/plugin/hnit_a/grades.html",
+  "zh-cn": "课程成绩",
+  "en": "Course Grades"
+}
+```
+
+未声明链接类型或打开目标时，按旧模块处理：前端会 `fetch(url)` 获取 HTML，并放入 Overlay 弹层显示。
+
+如果功能项需要作为超链接跳转，增加链接声明：
+
+```json
+{
+  "id": "3",
+  "type": "link",
+  "url": "https://example.com",
+  "target": "new",
+  "zh-cn": "外部系统",
+  "en": "External System"
+}
+```
+
+可用字段：
+
+- `type`: 功能类型。未配置时按旧模块加载；`link` 为普通超链接；`wechat_miniapp` 为微信小程序页面跳转；`wechat_link` 为微信外部链接跳转
+- `target`: 指定打开方式
+- `new`: 新页面打开
+- `self`: 当前页面打开
+
+链接功能未配置 `target` 时默认按 `self` 当前页面打开。旧模块不要配置 `type: "link"`。
+
+如果功能只应在微信小程序环境显示并跳转到另一个小程序，将 `type` 设置为 `wechat_miniapp`。`url` 填目标小程序 appid；如果需要指定页面，可以在 appid 后拼接 `\pages\...` 页面地址。不带页面地址时按微信默认入口跳转：
+
+```json
+{
+  "id": "1",
+  "type": "wechat_miniapp",
+  "url": "wx1234567890abcdef",
+  "zh-cn": "微信专属功能",
+  "en": "WeChat Only"
+}
+```
+
+指定页面示例：
+
+```json
+{
+  "id": "1",
+  "type": "wechat_miniapp",
+  "url": "wx1234567890abcdef\\pages\\index\\index",
+  "zh-cn": "微信专属功能",
+  "en": "WeChat Only"
+}
+```
+
+如果功能只应在微信小程序环境显示并跳转到小程序外部链接，将 `type` 设置为 `wechat_link`，`url` 填目标链接地址。该类型用于公众号文章等微信外部链接：
+
+```json
+{
+  "id": "2",
+  "type": "wechat_link",
+  "url": "https://mp.weixin.qq.com/s/example",
+  "zh-cn": "公众号文章",
+  "en": "Official Account Article"
+}
+```
+
+微信环境以初始化阶段写入的 `setting_app_channel` 为准，值为 `WeChat` 时显示。非微信环境会跳过 `wechat_miniapp` 和 `wechat_link` 功能项，并在过滤后重新按 `id` 排序渲染，不保留空位。Web 端初始化判断为微信环境后会加载 `https://res.wx.qq.com/open/js/jweixin-1.6.0.js`，点击微信功能时通过 `wx.miniProgram.navigateTo` 进入小程序中间页，由 `xykcb_miniapp` 再跳转到目标小程序或打开微信外部链接。
 
 #### 3.4 登录页面 (`login/`)
 - **功能**：用户登录认证
@@ -339,7 +415,7 @@ xykcb/
 
 #### 3.5 远程功能模块 (`/plugin/`)
 - **功能**：插件式功能扩展
-- **架构**：通过 API 获取学校支持的功能列表，动态加载 HTML 和脚本
+- **架构**：通过 API 获取学校支持的功能列表；旧模块动态加载 HTML 和脚本，链接模块直接跳转
 - **示例**：`hnit_a/grades.html` - 成绩查询与导出
 - **导出功能**：支持导出为 Excel 表格和 PNG 图片
 

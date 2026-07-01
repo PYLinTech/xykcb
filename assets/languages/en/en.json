@@ -119,7 +119,8 @@
     "goLogin": "Sign in",
     "reLogin": "Sign in Again",
     "functions": "Functions",
-    "function": "Function"
+    "function": "Function",
+    "jumpFailed": "Jump failed"
   },
   "settings": {
     "appSettings": "App Settings",
