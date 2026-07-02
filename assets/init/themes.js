@@ -5,6 +5,29 @@ const themeConfig = {
   dark: 'dark'
 };
 
+const MINIAPP_THEME_SYNC_TYPE = 'theme';
+const MINIAPP_COLOR_SYNC_TYPE = 'color';
+
+function isMiniappEnvironment() {
+  return String(localStorage.getItem('setting_app_type') || '').toLowerCase() === 'miniapp';
+}
+
+async function syncMiniappSetting(type, target) {
+  if (!isMiniappEnvironment()) return;
+
+  try {
+    const miniProgram = (await window.xykcbWechatReady)?.miniProgram;
+    miniProgram?.navigateTo({
+      url: `/pages/redirect/redirect?${new URLSearchParams({
+        type,
+        target
+      }).toString()}`
+    });
+  } catch (error) {
+    console.warn(`Failed to sync ${type} to WeChat Mini Program`, error);
+  }
+}
+
 // 颜色配置
 const colorConfig = {
   appleGreen: { main: '#07c160', bg90: '#e1f5d8', bg100: '#c8e6c9', bg110: '#b2dfdb', bg130: '#a5d6a7' },
@@ -17,17 +40,21 @@ const colorConfig = {
 };
 
 // 应用主题
-export async function applyTheme(theme) {
+export async function applyTheme(theme, options = {}) {
   const body = document.body;
   if (theme === 'system') {
     body.removeAttribute('data-weui-theme');
   } else {
     body.setAttribute('data-weui-theme', theme);
   }
+
+  if (options.syncMiniapp !== false) {
+    await syncMiniappSetting(MINIAPP_THEME_SYNC_TYPE, theme);
+  }
 }
 
 // 应用颜色
-export async function applyColor(color) {
+export async function applyColor(color, options = {}) {
   const body = document.body;
   const colorData = colorConfig[color] || colorConfig.appleGreen;
   body.style.setProperty('--weui-BRAND', colorData.main);
@@ -40,17 +67,21 @@ export async function applyColor(color) {
   body.style.setProperty('--weui-BRAND-BG-100', colorData.bg100);
   body.style.setProperty('--weui-BRAND-BG-110', colorData.bg110);
   body.style.setProperty('--weui-BRAND-BG-130', colorData.bg130);
+
+  if (options.syncMiniapp !== false) {
+    await syncMiniappSetting(MINIAPP_COLOR_SYNC_TYPE, color);
+  }
 }
 
 // 初始化颜色
 export async function initColor() {
   const color = localStorage.getItem('setting_color') || 'appleGreen';
-  await applyColor(color);
+  await applyColor(color, { syncMiniapp: false });
 }
 
 // 初始化主题
 export async function initTheme() {
   const theme = localStorage.getItem('setting_theme') || themeConfig.system;
-  await applyTheme(theme);
+  await applyTheme(theme, { syncMiniapp: false });
   await initColor();
 }

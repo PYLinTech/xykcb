@@ -83,6 +83,7 @@ function getLabel(key, value) {
 const getSetting = key => localStorage.getItem(`setting_${key}`) ?? defaults[key];
 const saveSetting = (key, value) => localStorage.setItem(`setting_${key}`, value);
 const idMap = { language: 'lang', theme: 'theme', font: 'font', color: 'color' };
+const MINIAPP_CLEAR_DATA_TYPE = 'clear_data';
 
 const waitFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
 const getAppInfoParts = () => [
@@ -91,11 +92,34 @@ const getAppInfoParts = () => [
   localStorage.getItem('setting_app_platform') || ''
 ].filter(Boolean);
 
+function isMiniappRuntime() {
+  return localStorage.getItem('setting_app_type') === 'miniapp';
+}
+
+async function requestMiniappClearDataAndExit() {
+  try {
+    const miniProgram = (await window.xykcbWechatReady)?.miniProgram;
+    miniProgram?.navigateTo({
+      url: `/pages/redirect/redirect?${new URLSearchParams({
+        type: MINIAPP_CLEAR_DATA_TYPE,
+        target: '1'
+      }).toString()}`
+    });
+  } catch (e) {
+    console.warn('Failed to request miniapp data clearing', e);
+  }
+}
+
 async function clearUserDataAndExit() {
+  const isMiniapp = isMiniappRuntime();
   toast.loading(getI18n('settings', 'clearingData'));
   await waitFrame();
   localStorage.clear();
   hideToast();
+  if (isMiniapp) {
+    await requestMiniappClearDataAndExit();
+    return;
+  }
   window.location.href = 'https://www.pylin.cn/';
 }
 
