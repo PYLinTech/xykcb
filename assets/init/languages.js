@@ -1,6 +1,27 @@
 // 当前语言数据
 let langData = null;
 let initPromise = null;
+const WECHAT_LANGUAGE_SYNC_TYPE = 'language';
+
+function isWechatEnvironment() {
+  return String(localStorage.getItem('setting_app_channel') || '').toLowerCase() === 'wechat';
+}
+
+async function syncWechatMiniappLanguage(language) {
+  if (!isWechatEnvironment()) return;
+
+  try {
+    const miniProgram = (await window.xykcbWechatReady)?.miniProgram;
+    miniProgram?.navigateTo({
+      url: `/pages/redirect/redirect?${new URLSearchParams({
+        type: WECHAT_LANGUAGE_SYNC_TYPE,
+        target: language
+      }).toString()}`
+    });
+  } catch (error) {
+    console.warn('Failed to sync language to WeChat Mini Program', error);
+  }
+}
 
 // 初始化语言
 export async function initLanguage(lang) {
@@ -102,5 +123,6 @@ export function getCurrentLang() {
 export async function onLanguageChange(value) {
   initPromise = null;
   await initLanguage(value);
+  await syncWechatMiniappLanguage(value);
   import('/index.js').then(m => m.refreshSubpage?.());
 }
