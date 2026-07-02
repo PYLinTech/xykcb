@@ -3,12 +3,12 @@ let langData = null;
 let initPromise = null;
 const WECHAT_LANGUAGE_SYNC_TYPE = 'language';
 
-function isWechatEnvironment() {
-  return String(localStorage.getItem('setting_app_channel') || '').toLowerCase() === 'wechat';
+function isMiniappEnvironment() {
+  return String(localStorage.getItem('setting_app_type') || '').toLowerCase() === 'miniapp';
 }
 
 async function syncWechatMiniappLanguage(language) {
-  if (!isWechatEnvironment()) return;
+  if (!isMiniappEnvironment()) return;
 
   try {
     const miniProgram = (await window.xykcbWechatReady)?.miniProgram;
@@ -63,7 +63,9 @@ async function translateIndex() {
     await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
   }
   const title = getI18n('index', 'xykcb');
-  if (title) document.title = title;
+  if (title && String(localStorage.getItem('setting_app_type') || '').toLowerCase() !== 'miniapp') {
+    document.title = title;
+  }
   await translateElements('index', document.querySelectorAll('[data-i18n]'));
 }
 

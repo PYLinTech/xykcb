@@ -31,13 +31,12 @@ function getFunctionType(func) {
     return String(func.type || '').toLowerCase();
 }
 
-function isWechatEnvironment() {
-    const channel = String(localStorage.getItem('setting_app_channel') || '').toLowerCase();
-    return channel === 'wechat';
+function isMiniappEnvironment() {
+    return String(localStorage.getItem('setting_app_type') || '').toLowerCase() === 'miniapp';
 }
 
 function shouldShowFunction(func) {
-    return !WECHAT_FUNCTION_TYPES.includes(getFunctionType(func)) || isWechatEnvironment();
+    return !WECHAT_FUNCTION_TYPES.includes(getFunctionType(func)) || isMiniappEnvironment();
 }
 
 function isLinkFunction(func) {

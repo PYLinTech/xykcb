@@ -66,7 +66,7 @@ localStorage.setItem('setting_app_channel', appChannel);
 localStorage.setItem('setting_app_type', appType);
 
 function loadWechatJSSDK() {
-  if (appChannel !== 'WeChat') return Promise.resolve(null);
+  if (appType !== 'miniapp') return Promise.resolve(null);
   if (window.wx?.miniProgram) return Promise.resolve(window.wx);
 
   return new Promise((resolve, reject) => {
