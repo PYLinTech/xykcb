@@ -14,6 +14,7 @@ const MAX_CACHE_SIZE = 3; // 最多缓存 3 个页面
 const cache = new Map();
 let current = null;
 let overlayCleanupTimer = null;
+let overlayTransitionEndBound = false;
 const container = document.getElementById('page-container');
 const tabbar = document.getElementById('tabbar');
 
@@ -69,12 +70,40 @@ async function switchPage(pageName) {
   await render(pageName);
 }
 
-export async function showOverlay(pageName, html) {
-  const overlay = document.getElementById('overlay');
+function clearOverlayCleanup() {
   if (overlayCleanupTimer) {
     clearTimeout(overlayCleanupTimer);
     overlayCleanupTimer = null;
   }
+}
+
+function bindOverlayTransitionEnd() {
+  if (overlayTransitionEndBound) return;
+  overlayTransitionEndBound = true;
+  const overlay = document.getElementById('overlay');
+  overlay.addEventListener('transitionend', e => {
+    if (e.target !== overlay) return;
+    if (overlay.classList.contains('show')) return;
+    finishHideOverlay();
+  });
+}
+
+function finishHideOverlay() {
+  if (overlayCleanupTimer) {
+    clearTimeout(overlayCleanupTimer);
+    overlayCleanupTimer = null;
+  }
+  const overlay = document.getElementById('overlay');
+  if (overlay.classList.contains('show')) return;
+  // 容器已彻底隐藏（visibility:hidden 生效），先移除内部 <style>，再清空 DOM。
+  overlay.querySelectorAll('style').forEach(style => style.remove());
+  overlay.innerHTML = '';
+}
+
+export async function showOverlay(pageName, html) {
+  bindOverlayTransitionEnd();
+  const overlay = document.getElementById('overlay');
+  clearOverlayCleanup();
   overlay.innerHTML = html;
 
   // 执行内联脚本
@@ -99,15 +128,14 @@ export async function showOverlay(pageName, html) {
 }
 
 export function hideOverlay() {
+  bindOverlayTransitionEnd();
   const overlay = document.getElementById('overlay');
+  clearOverlayCleanup();
   overlay.classList.remove('show');
   document.body.classList.remove('xykcb-overlay-open');
-  // 动态插件的 <style> 位于 overlay 内，隐藏后仍会参与全局 CSS 级联；先移除样式，再延迟清空内容。
-  overlay.querySelectorAll('style').forEach(style => style.remove());
-  overlayCleanupTimer = setTimeout(() => {
-    if (!overlay.classList.contains('show')) overlay.innerHTML = '';
-    overlayCleanupTimer = null;
-  }, 260);
+  // 等淡出动画结束、容器彻底隐藏（visibility:hidden 生效）后再清理容器内部。
+  // 用 transitionend 精确触发，setTimeout 兜底防止 transitionend 不触发（例如 display:none 中断）。
+  overlayCleanupTimer = setTimeout(finishHideOverlay, 300);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
