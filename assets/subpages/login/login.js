@@ -1,3 +1,4 @@
+import { getSchoolName, hasValidSchoolDefinition, loadSchools, resolveSchoolDefinition } from '/assets/common/schools.js';
 import { showOverlay, hideOverlay } from '/index.js';
 import { toast, hideToast } from '/assets/common/toast.js';
 import { HalfRadioDialog } from '/assets/common/half_radio_dialog.js';
@@ -9,10 +10,12 @@ const LOGIN_USER_KEY = 'login_user';
 const COURSE_DATA_KEY = 'course_data';
 
 let currentSchool = null;
+let currentSchoolDefinition = null;
 
 export const getSavedUser = () => JSON.parse(localStorage.getItem(LOGIN_USER_KEY) || 'null');
 const saveUser = (school, account, password, isLoggedIn = true) => {
-  localStorage.setItem(LOGIN_USER_KEY, JSON.stringify({ school, account, password, isLoggedIn }));
+  const schoolDefinition = hasValidSchoolDefinition(currentSchoolDefinition, school) ? currentSchoolDefinition : null;
+  localStorage.setItem(LOGIN_USER_KEY, JSON.stringify({ school, schoolDefinition, account, password, isLoggedIn }));
 };
 
 function getLoginResponseDesc(result) {
@@ -26,9 +29,6 @@ function getLoginResponseDesc(result) {
 const saveCourseData = (data) => {
   localStorage.setItem(COURSE_DATA_KEY, JSON.stringify(data));
 };
-
-const sortSchoolsById = (schools) =>
-  [...schools].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
 function showError(cellId, message) {
   const cell = document.getElementById(cellId);
@@ -58,9 +58,25 @@ export async function loadLogin() {
   const localStorageSchool = savedUser?.school;
   if (!currentSchool && localStorageSchool) {
     currentSchool = localStorageSchool;
+    currentSchoolDefinition = hasValidSchoolDefinition(savedUser.schoolDefinition, localStorageSchool)
+      ? savedUser.schoolDefinition
+      : null;
+  } else if (currentSchool && currentSchool === localStorageSchool
+    && !hasValidSchoolDefinition(currentSchoolDefinition, currentSchool)
+    && hasValidSchoolDefinition(savedUser?.schoolDefinition, currentSchool)) {
+    currentSchoolDefinition = savedUser.schoolDefinition;
   }
   if (currentSchool) {
-    document.getElementById('js_school_text').textContent = getI18n('desc_key', currentSchool);
+    const schoolText = document.getElementById('js_school_text');
+    schoolText.textContent = getSchoolName(currentSchoolDefinition, currentSchool);
+    if (!hasValidSchoolDefinition(currentSchoolDefinition, currentSchool)) {
+      const targetSchool = currentSchool;
+      resolveSchoolDefinition(targetSchool, currentSchoolDefinition).then((definition) => {
+        if (!definition || currentSchool !== targetSchool) return;
+        currentSchoolDefinition = definition;
+        if (schoolText.isConnected) schoolText.textContent = getSchoolName(definition, targetSchool);
+      });
+    }
   }
   if (currentSchool === localStorageSchool && savedUser) {
     document.getElementById('js_username').value = savedUser.account || '';
@@ -96,24 +112,21 @@ function togglePasswordVisibility() {
 async function handleSchoolClick() {
   toast.loading(getI18n('common', 'toastLoading'));
 
-  const res = await fetchWithTimeout(API.getSupportSchool);
-  const data = await res.json();
-
-  hideToast();
-
-  if (data.success && data.data) {
-    showSchoolDialog(data.data);
-  } else {
+  try {
+    const schools = await loadSchools({ refresh: true });
+    hideToast();
+    showSchoolDialog(schools);
+  } catch {
+    hideToast();
     toast.warn(getI18n('login', 'toastLoadSchoolError'));
   }
 }
 
 function showSchoolDialog(schools) {
-  const sortedData = sortSchoolsById(schools);
   const selected = currentSchool;
 
-  const options = sortedData.map(school => ({
-    label: getI18n('desc_key', school.desc_key),
+  const options = schools.map(school => ({
+    label: getSchoolName(school, school.desc_key),
     value: school.desc_key
   }));
 
@@ -124,7 +137,8 @@ function showSchoolDialog(schools) {
     onChange: (value) => {
       if (value) {
         currentSchool = value;
-        document.getElementById('js_school_text').textContent = getI18n('desc_key', value);
+        currentSchoolDefinition = schools.find(school => school.desc_key === value) || null;
+        document.getElementById('js_school_text').textContent = getSchoolName(currentSchoolDefinition, value);
         clearError();
       }
     }
@@ -152,6 +166,9 @@ async function handleLogin() {
 
   const result = await fetchCourseData(currentSchool, account, password);
   if (result) {
+    if (!hasValidSchoolDefinition(currentSchoolDefinition, currentSchool)) {
+      currentSchoolDefinition = await resolveSchoolDefinition(currentSchool, currentSchoolDefinition);
+    }
     saveCourseData(result);
     saveUser(currentSchool, account, password);
     hideOverlay();

@@ -14,10 +14,6 @@
     "toastLoading": "Loading..."
   },
   "desc_key": {
-    "hnit_a": "Hunan Institute Of Technology (Mobile)",
-    "hnit_b": "Hunan Institute Of Technology (PC)",
-    "hynu": "Hengyang Normal University",
-    "usc": "University Of South China",
     "000": "Please check your network connection",
     "001": "Invalid request parameters or method",
     "002": "Unsupported school",

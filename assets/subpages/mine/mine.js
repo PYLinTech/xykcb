@@ -1,3 +1,4 @@
+import { getSchoolName, hasValidSchoolDefinition, resolveSchoolDefinition } from '/assets/common/schools.js';
 import { translatePage, getI18n, getCurrentLang } from '/assets/init/languages.js';
 import { loadLogin, getSavedUser } from '/assets/subpages/login/login.js';
 import { showOverlay, hideOverlay } from '/index.js';
@@ -9,6 +10,7 @@ window.hideOverlay = hideOverlay;
 
 let loginSuccessHandler = null;
 let functionsLoadSeq = 0;
+let loginStateSeq = 0;
 const WECHAT_FUNCTION_TYPES = ['wechat_miniapp', 'wechat_link'];
 
 // 远程功能弹窗模板样式
@@ -163,6 +165,7 @@ async function loadFunctions(container) {
 }
 
 function updateLoginState(container) {
+    const seq = ++loginStateSeq;
     const savedUser = getSavedUser();
     const isLoggedIn = savedUser?.isLoggedIn !== false;
 
@@ -177,10 +180,21 @@ function updateLoginState(container) {
         // 已登录状态
         accountIcon.className = 'ri-emotion-happy-line';
         accountIcon.style.color = 'var(--weui-BRAND)';
+        accountTitle.removeAttribute('data-i18n');
         accountTitle.textContent = savedUser.account || '';
-        accountDesc.textContent = getI18n('desc_key', savedUser.school);
+        accountDesc.removeAttribute('data-i18n');
+        accountDesc.textContent = getSchoolName(savedUser.schoolDefinition, savedUser.school || '');
         loginBtnText.setAttribute('data-i18n', 'reLogin');
         loginBtnText.textContent = getI18n('mine', 'reLogin');
+
+        if (savedUser.school && !hasValidSchoolDefinition(savedUser.schoolDefinition, savedUser.school)) {
+            resolveSchoolDefinition(savedUser.school, savedUser.schoolDefinition).then((definition) => {
+                const latestUser = getSavedUser();
+                if (!definition || seq !== loginStateSeq || !accountDesc.isConnected) return;
+                if (latestUser?.isLoggedIn === false || latestUser?.school !== savedUser.school || latestUser?.account !== savedUser.account) return;
+                accountDesc.textContent = getSchoolName(definition, savedUser.school);
+            });
+        }
     } else {
         // 未登录状态
         accountIcon.className = 'ri-error-warning-line';
